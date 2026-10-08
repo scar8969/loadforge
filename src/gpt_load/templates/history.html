@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}History · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>Run history</h1>
+
+<div class="card">
+  <h2>{{ runs|length }} stored run{{ '' if runs|length == 1 else 's' }}</h2>
+  {% if runs %}
+  <table>
+    <tr><th>#</th><th>scenario</th><th>model</th><th>c/d</th><th>status</th><th>req/s</th><th>p50</th><th>p95</th><th>err %</th><th>cost</th><th>started</th><th></th></tr>
+    {% for run, summary in runs %}
+    <tr>
+      <td class="mono">{{ run.id }}</td>
+      <td>{{ run.scenario }}</td>
+      <td class="mono">{{ run.model }}</td>
+      <td class="mono">{{ run.concurrency }}/{{ run.duration }}s</td>
+      <td><span class="tag {% if run.status == 'done' %}ok{% elif run.status == 'running' %}warn{% else %}bad{% endif %}">{{ run.status }}</span></td>
+      <td class="mono">{{ summary.get('rps', '—') }}</td>
+      <td class="mono">{{ summary.get('p50', '—') }}</td>
+      <td class="mono">{{ summary.get('p95', '—') }}</td>
+      <td class="mono">{{ summary.get('err_rate', '—') }}</td>
+      <td class="mono">{% if summary.get('cost') is not none %}&#36;{{ '%.4f'|format(summary.get('cost')) }}{% else %}—{% endif %}</td>
+      <td class="mono">{{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else '—' }}</td>
+      <td class="actions">
+        {% if run.status == 'running' %}
+        <form method="post" action="{{ url_for('stop_run', rid=run.id) }}"><button class="ghost" type="submit">Stop</button></form>
+        {% endif %}
+        <form method="post" action="{{ url_for('delete_run', rid=run.id) }}"><button class="danger" type="submit">Delete</button></form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="empty">Nothing recorded yet — start a run from the <a href="{{ url_for('index') }}">Run</a> page.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Compare two runs</h2>
+  <form method="get" action="{{ url_for('compare') }}">
+    <div class="row">
+      <label for="a">Left run id</label><input id="a" name="a" type="number" min="1" style="width:110px">
+      <label for="b">Right run id</label><input id="b" name="b" type="number" min="1" style="width:110px">
+      <button type="submit">Compare</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

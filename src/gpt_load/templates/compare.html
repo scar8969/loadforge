@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Compare · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>Compare runs</h1>
+
+<div class="card">
+  <h2>Pick two runs</h2>
+  <form method="get" action="{{ url_for('compare') }}">
+    <div class="fields">
+      <div>
+        <label for="a">Left run</label>
+        <select id="a" name="a">
+          <option value="">—</option>
+          {% for run, summary in runs %}<option value="{{ run.id }}"{% if left and left.id == run.id %} selected{% endif %}>#{{ run.id }} {{ run.scenario }} · {{ run.model }} · {{ run.status }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="b">Right run</label>
+        <select id="b" name="b">
+          <option value="">—</option>
+          {% for run, summary in runs %}<option value="{{ run.id }}"{% if right and right.id == run.id %} selected{% endif %}>#{{ run.id }} {{ run.scenario }} · {{ run.model }} · {{ run.status }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px"><button type="submit">Compare</button></div>
+  </form>
+</div>
+
+{% if left and right %}
+<div class="grid">
+  {% for run in [left, right] %}
+  <div class="card">
+    <h2>Run #{{ run.id }}</h2>
+    <div class="row"><span class="muted">scenario</span><span>{{ run.scenario }}</span></div>
+    <div class="row"><span class="muted">model</span><span class="mono">{{ run.model }}</span></div>
+    <div class="row"><span class="muted">endpoint</span><span class="mono">{{ run.endpoint }}</span></div>
+    <div class="row"><span class="muted">status</span><span class="tag {% if run.status == 'done' %}ok{% elif run.status == 'running' %}warn{% else %}bad{% endif %}">{{ run.status }}</span></div>
+    <div class="row"><span class="muted">concurrency / duration</span><span class="mono">{{ run.concurrency }} / {{ run.duration }}s</span></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>#{{ left.id }} vs #{{ right.id }}</h2>
+  <table>
+    <tr><th>metric</th><th>#{{ left.id }}</th><th>#{{ right.id }}</th><th>delta</th></tr>
+    {% for row in metric_rows %}
+    <tr>
+      <td>{{ row.label }}</td>
+      <td class="mono">{{ row.a if row.a is not none else '—' }}</td>
+      <td class="mono">{{ row.b if row.b is not none else '—' }}</td>
+      <td class="mono">{{ '%+.4f'|format(row.delta) if row.delta is not none else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}
+<div class="card">
+  {% if runs %}
+  <p class="empty">Choose a left and a right run above to see the stored metrics side by side.</p>
+  {% else %}
+  <p class="empty">No runs recorded yet, so there is nothing to compare. Start one from the <a href="{{ url_for('index') }}">Run</a> page.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

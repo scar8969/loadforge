@@ -1,0 +1,116 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "a1-gpt-load"
+version = "0.1.0"
+description = "LLM API load tester. `gpt-load` drives concurrent chat-completion traffic at an"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "project-skeletons maintainers" }]
+keywords = ["flask", "service", "gpt_load"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Framework :: Flask",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+]
+dependencies = [
+    'Flask>=3.0',
+    'Flask-SQLAlchemy>=3.1',
+    'SQLAlchemy>=2.0',
+    'PyYAML>=6.0',
+    'aiohttp',
+    'PyYAML',
+    'tiktoken',
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "mypy>=1.10",
+  "ruff>=0.6",
+  "pre-commit>=3.7",
+  "types-PyYAML",
+  "types-requests",
+]
+
+[project.urls]
+Homepage = "https://example.invalid/gpt_load"
+Documentation = "https://example.invalid/gpt_load/docs"
+Issues = "https://example.invalid/gpt_load/issues"
+
+[project.scripts]
+a1-gpt-load = "gpt_load.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+gpt_load = ["py.typed", "app.py", "http.py", "observability.py", "paths.py", "templates/*", "static/*"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-q -ra --strict-markers --strict-config"
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 85
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "S", "RUF"]
+ignore = ["S101", "S104", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+packages = ["gpt_load"]
+strict = true
+warn_unreachable = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+no_implicit_optional = true
+check_untyped_defs = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["flask.*", "werkzeug.*", "sqlalchemy.*"]
+ignore_missing_imports = true

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}New run · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>Start a load run</h1>
+
+<div class="grid">
+  <div class="kpi"><span>runs recorded</span><b>{{ counts.runs }}</b></div>
+  <div class="kpi"><span>samples stored</span><b>{{ counts.samples }}</b></div>
+  <div class="kpi"><span>running now</span><b>{{ counts.running }}</b></div>
+  <div class="kpi"><span>models priced</span><b>{{ models|length }}</b></div>
+</div>
+
+<form method="post" action="{{ url_for('start_run') }}">
+  <fieldset>
+    <legend>Scenario</legend>
+    <div class="fields">
+      <div>
+        <label for="scenario">Scenario name</label>
+        <input id="scenario" name="scenario" value="{{ defaults.scenario }}" placeholder="basic">
+      </div>
+      <div>
+        <label for="endpoint">Chat completions endpoint</label>
+        <input id="endpoint" name="endpoint" value="{{ defaults.endpoint }}" placeholder="http://127.0.0.1:8080/v1/chat/completions">
+      </div>
+      <div>
+        <label for="model">Model</label>
+        <select id="model" name="model">
+          {% for m in models %}<option value="{{ m }}"{% if m == defaults.model %} selected{% endif %}>{{ m }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="api_key">API key (optional)</label>
+        <input id="api_key" name="api_key" type="password" placeholder="sk-...">
+      </div>
+      <div>
+        <label for="concurrency">Concurrency</label>
+        <input id="concurrency" name="concurrency" type="number" min="1" max="512" value="{{ defaults.concurrency }}">
+      </div>
+      <div>
+        <label for="duration">Duration (seconds)</label>
+        <input id="duration" name="duration" type="number" min="1" max="3600" value="{{ defaults.duration }}">
+      </div>
+      <div>
+        <label for="rpm">Requests / min cap</label>
+        <input id="rpm" name="rpm" type="number" min="1" value="{{ defaults.rpm }}">
+      </div>
+      <div>
+        <label for="tpm">Tokens / min cap</label>
+        <input id="tpm" name="tpm" type="number" min="1" value="{{ defaults.tpm }}">
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px"><button type="submit">Start run</button></div>
+  </fieldset>
+</form>
+
+<div class="card">
+  <h2>Recent runs</h2>
+  {% if runs %}
+  <table>
+    <tr><th>#</th><th>scenario</th><th>model</th><th>status</th><th>req/s</th><th>p95</th><th>err %</th></tr>
+    {% for run, summary in runs %}
+    <tr>
+      <td class="mono">{{ run.id }}</td>
+      <td>{{ run.scenario }}</td>
+      <td class="mono">{{ run.model }}</td>
+      <td><span class="tag {% if run.status == 'done' %}ok{% elif run.status == 'running' %}warn{% else %}bad{% endif %}">{{ run.status }}</span></td>
+      <td class="mono">{{ summary.get('rps', '—') }}</td>
+      <td class="mono">{{ summary.get('p95', '—') }}</td>
+      <td class="mono">{{ summary.get('err_rate', '—') }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <div class="row" style="margin-top:12px"><a href="{{ url_for('history') }}"><button class="ghost" type="button">Full history</button></a></div>
+  {% else %}
+  <p class="empty">No runs recorded yet. Submit the form above to store the first one.</p>
+  {% endif %}
+</div>
+{% endblock %}

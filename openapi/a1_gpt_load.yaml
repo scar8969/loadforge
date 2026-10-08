@@ -1,0 +1,95 @@
+openapi: 3.0.0
+info:
+  title: "⚡ gpt-load"
+  version: 0.1.0
+  description: >-
+    LLM API load tester: schedules concurrent chat-completion traffic against an
+    OpenAI-compatible endpoint, records per-request samples, and reports latency
+    percentiles and token cost.
+paths:
+  /api/health:
+    get:
+      summary: liveness probe
+      responses:
+        "200":
+          description: ok
+  /api/runs:
+    get:
+      summary: list runs, newest first
+      responses:
+        "200":
+          description: ok
+    post:
+      summary: create a run and start it in the background
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scenario: {type: string}
+                endpoint: {type: string}
+                model: {type: string}
+                concurrency: {type: integer}
+                duration: {type: integer}
+                api_key: {type: string}
+                rpm: {type: integer}
+                tpm: {type: integer}
+      responses:
+        "200":
+          description: run accepted; body carries the new run id
+  /api/runs/{id}/stream:
+    get:
+      summary: server-sent event stream of samples for one run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer}
+      responses:
+        "200":
+          description: text/event-stream
+        "404":
+          description: no run with that id
+  /api/runs/{id}/stop:
+    post:
+      summary: stop a running load test
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer}
+      responses:
+        "200":
+          description: ok
+        "404":
+          description: no run with that id
+  /run:
+    post:
+      summary: start a run from the HTML form
+      responses:
+        "302":
+          description: redirect back to the dashboard
+  /runs/{id}/stop:
+    post:
+      summary: stop a run from the HTML form
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer}
+      responses:
+        "302":
+          description: redirect back to the dashboard
+  /runs/{id}/delete:
+    post:
+      summary: delete a stored run and its samples
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer}
+      responses:
+        "302":
+          description: redirect to the run history
