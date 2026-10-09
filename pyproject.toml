@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "a1-gpt-load"
 version = "0.1.0"
-description = "LLM API load tester. `gpt-load` drives concurrent chat-completion traffic at an"
+description = "LLM API load tester: drives concurrent chat-completion traffic at an OpenAI-compatible endpoint."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -112,5 +112,12 @@ check_untyped_defs = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["flask.*", "werkzeug.*", "sqlalchemy.*"]
+module = ["flask.*", "werkzeug.*", "sqlalchemy.*", "flask_sqlalchemy.*", "aiohttp.*", "tiktoken.*", "yaml.*"]
 ignore_missing_imports = true
+
+# flask_sqlalchemy stores the declarative base on the extension instance, so the
+# base class of Run and Sample is a plain Any; subclassing it is correct and
+# intentional, and this is the only module where it happens.
+[[tool.mypy.overrides]]
+module = ["gpt_load.models"]
+disallow_subclassing_any = false

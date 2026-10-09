@@ -1,5 +1,5 @@
 """A1 gpt-load — tests. Run: pytest test_a1_gpt_load.py"""
-import sys, os, json, threading, time
+import json, threading
 
 import pytest
 

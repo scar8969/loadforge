@@ -13,7 +13,7 @@ import os
 import sys
 import time
 import uuid
-from typing import Any
+from typing import Any, TextIO
 
 from . import __version__
 
@@ -85,7 +85,7 @@ class _TextFormatter(logging.Formatter):
         return base
 
 
-class _StdoutHandler(logging.StreamHandler):
+class _StdoutHandler(logging.StreamHandler[TextIO]):
     """Write to whatever sys.stdout is *now*.
 
     A handler that binds the stream it saw at construction keeps writing

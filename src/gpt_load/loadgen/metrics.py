@@ -1,8 +1,9 @@
 import statistics
+from typing import Any
 
 MODEL_COSTS = {"gpt-4o": (2.50, 10.00), "gpt-4o-mini": (0.15, 0.60)}  # $/1M in/out
 
-def summarize(samples: list) -> dict:
+def summarize(samples: list[dict[str, Any]]) -> dict[str, Any]:
     if not samples:
         return {"rps": 0, "p50": 0, "p95": 0, "p99": 0, "err_rate": 0, "cost": 0, "tokens_in": 0, "tokens_out": 0}
     lats = sorted(s["latency_ms"] for s in samples)

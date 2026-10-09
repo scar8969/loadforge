@@ -16,9 +16,11 @@ python -m compileall -q src
 | check | result |
 | --- | --- |
 | compileall | exit 0 |
-| pytest | ..........................                                               [100%] |
+| mypy | Success: no issues found in 16 source files |
+| pyflakes | 0 findings |
+| pytest | 73 passed, 15 warnings in 27.05s |
 | pytest_exit_code | 0 |
-| recorded_at | 2026-10-08 |
+| recorded_at | 2026-10-09 |
 | routes_ok | 11 |
 | routes_probed | 11 |
 
@@ -30,13 +32,13 @@ no such resource, and 404 is the honest answer for that.
 
 | method | path | rule | status | bytes | note |
 | --- | --- | --- | --- | --- | --- |
-| GET | `/` | `/` | 200 | 6456 | ok |
+| GET | `/` | `/` | 200 | 7417 | ok |
 | GET | `/api/health` | `/api/health` | 200 | 37 | ok |
-| GET | `/api/runs` | `/api/runs` | 200 | 12 | ok |
+| GET | `/api/runs` | `/api/runs` | 200 | 1007 | ok |
 | GET | `/api/runs/demo/stream` | `/api/runs/<int:rid>/stream` | 404 | 51 | ok |
-| GET | `/compare` | `/compare` | 200 | 5098 | ok |
+| GET | `/compare` | `/compare` | 200 | 5411 | ok |
 | GET | `/healthz` | `/healthz` | 200 | 55 | ok |
-| GET | `/history` | `/history` | 200 | 4926 | ok |
+| GET | `/history` | `/history` | 200 | 6772 | ok |
 | GET | `/livez` | `/livez` | 200 | 19 | ok |
 | GET | `/metrics` | `/metrics` | 200 | 305 | ok |
 | GET | `/readyz` | `/readyz` | 200 | 31 | ok |
@@ -68,10 +70,10 @@ no such resource, and 404 is the honest answer for that.
 # TYPE http_requests_total counter
 http_requests_total{method="GET",status="200"} 5
 # TYPE http_request_duration_seconds_sum counter
-http_request_duration_seconds_sum{method="GET"} 0.0741331
+http_request_duration_seconds_sum{method="GET"} 0.0460554
 http_requests_total{method="GET",status="404"} 1
 # TYPE process_uptime_seconds gauge
-process_uptime_seconds 1.076
+process_uptime_seconds 0.918
 ```
 
 `/version` answered **200**:
@@ -84,7 +86,7 @@ process_uptime_seconds 1.076
 
 | header | value |
 | --- | --- |
-| X-Request-ID | 3386e98317044dfa8e4e413c2e5723b2 |
+| X-Request-ID | b30f2746dba545a9be292c628d5d48bc |
 | X-Content-Type-Options | nosniff |
 | X-Frame-Options | DENY |
 | Referrer-Policy | no-referrer |
@@ -92,10 +94,28 @@ process_uptime_seconds 1.076
 | Permissions-Policy | geolocation=(), microphone=(), camera=() |
 | Content-Type | application/json |
 
+## Static analysis
+
+`python -m pyflakes src tests conftest.py wsgi.py` reported **0 finding(s)**:
+
+```
+(no output)
+```
+
+`python -m mypy --config-file mypy.ini src` said:
+
+```
+Success: no issues found in 16 source files
+```
+
+`ruff`, `bandit` and `pip-audit` are configured in this project but are absent from this host and cannot be installed without network access, so no result for them is recorded either way.
+
 ## What this file does not claim
 
-- No browser screenshot: this host denies the Chromium sandbox the renderer
-  needs, so the HTTP surface is evidenced with recorded status codes instead.
+- No screenshot in this file: the HTTP surface above is evidenced with
+  recorded status codes and bodies instead. (Headless screenshots of the
+  same routes are committed under `docs/assets/screens/`, captured by the
+  README pipeline rather than by this recorder.)
 - No network access: the suite is hermetic and contacts no remote host.
 - No container run: the Dockerfile is reviewed, not executed, because no
   container runtime is reachable from this host.

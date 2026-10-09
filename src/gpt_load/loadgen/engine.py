@@ -1,22 +1,32 @@
+from typing import Any
+
+import asyncio
+import time
+
+import aiohttp
+
 from .ratelimit import TokenBucket
 
-import aiohttp, asyncio, json, time
 
 class LoadEngine:
-    def __init__(self, endpoint, model, api_key, concurrency, duration, rpm=1000, tpm=500000):
+    """Drives ``concurrency`` workers against one endpoint for ``duration`` seconds."""
+
+    def __init__(self, endpoint: str, model: str, api_key: str, concurrency: int,
+                 duration: int, rpm: int = 1000, tpm: int = 500000) -> None:
         self.endpoint, self.model, self.api_key = endpoint, model, api_key
         self.concurrency, self.duration = concurrency, duration
         self.bucket = TokenBucket(rpm, tpm)
-        self.samples, self._stop = [], False
+        self.samples: list[dict[str, Any]] = []
+        self._stop = False
 
     async def run(self) -> None:
         t0 = time.monotonic()
         async with aiohttp.ClientSession() as sess:
             async with asyncio.TaskGroup() as tg:
-                for i in range(self.concurrency):
+                for _ in range(self.concurrency):
                     tg.create_task(self._worker(sess, t0))
 
-    async def _worker(self, sess, t0) -> None:
+    async def _worker(self, sess: aiohttp.ClientSession, t0: float) -> None:
         payload = {"model": self.model, "messages": [{"role": "user", "content": "ping" * 25}], "max_tokens": 64}
         while not self._stop and time.monotonic() - t0 < self.duration:
             await self.bucket.acquire(200)

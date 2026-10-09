@@ -20,7 +20,9 @@ dist/
 venv/
 
 # Tooling caches
+.tmp/
 .pytest_cache/
+pytest-cache-files-*/
 .mypy_cache/
 .ruff_cache/
 .coverage

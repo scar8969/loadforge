@@ -1,6 +1,8 @@
 # Architecture -- ⚡ gpt-load
 
 LLM API load tester. `gpt-load` drives concurrent chat-completion traffic at an
+OpenAI-compatible endpoint from an asyncio worker pool, throttles it with a token
+bucket, and reports latency percentiles, error rate, and token cost.
 
 This document explains how the service is put together, why the seams sit where
 they do, and what breaks first under load.

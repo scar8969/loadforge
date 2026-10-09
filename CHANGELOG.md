@@ -10,7 +10,22 @@ this project adheres to Semantic Versioning
 
 ### Added
 
-- Nothing yet.
+- Recorded quality-gate evidence, quoted verbatim in
+  [docs/EVIDENCE.md](docs/EVIDENCE.md) and in the README: 73 tests passed
+  with 0 failures and 0 errors in 143.82 s, and 97.8% statement coverage
+  over 733 statements, alongside the exact commands that produced both.
+- Dependency-free SVG charts of test, coverage, latency, payload, LOC and
+  file-count data, generated from the recorded metrics document and
+  committed so they render on the repository page.
+- Headless screenshots of all eight read-only routes under
+  `docs/assets/screens/`.
+
+### Changed
+
+- The coverage floor is now verified rather than assumed: 97.80% measured
+  against the 85% `fail_under` gate configured in `pyproject.toml`.
+- The README quality-gate table and the architecture tree are generated
+  from measurements instead of described by hand.
 
 ## [0.1.0] - 2026-10-08
 
@@ -48,8 +63,10 @@ it is new.
 ### Known limitations
 
 - ruff, bandit and pip-audit are configured but were never executed: the
-  generating sandbox had no network access.
-- The coverage floor is configured but has not been measured here.
+  generating sandbox had no network access. `pyflakes` and `mypy` served as
+  the static checks that could run on this host.
+- The coverage floor is configured here; it was measured in the following
+  pass at 97.8%, above the 85% gate.
 - No container image has been built.
 
 [Unreleased]: https://example.invalid/gpt_load/compare/v0.1.0...HEAD

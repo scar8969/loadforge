@@ -1,16 +1,29 @@
-import datetime
+"""The project's own Flask application: models, routes and background runs.
 
+Kept separate from ``gpt_load.app`` on purpose: this module is the legacy
+surface the factory wraps, so it stays importable and testable on its own.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import threading
+import traceback
+from typing import Any
+
+from flask import (Flask, Response, flash, jsonify, redirect, render_template,
+                   request, stream_with_context, url_for)
+
+from . import paths
 from .loadgen.engine import LoadEngine
 from .loadgen.metrics import MODEL_COSTS, summarize
-from .models import Run, Sample, db
-
-import os
-from flask import Flask, flash, jsonify, redirect, render_template, request, Response, url_for
-from . import paths
+from .models import Run, Sample, db, utc_now
 
 paths.ensure_runtime_dirs()
 
-def build_app():
+
+def build_app() -> Flask:
     """Build the application: configuration, database, then routes."""
     app = Flask(__name__, template_folder=str(paths.TEMPLATES_DIR),
                 instance_path=str(paths.INSTANCE_DIR))
@@ -20,19 +33,19 @@ def build_app():
     with app.app_context():
         db.create_all()
 
-    _engines = {}  # run_id -> LoadEngine
+    _engines: dict[int, LoadEngine] = {}  # run_id -> LoadEngine
 
     @app.context_processor
-    def _inject_app_name():
+    def _inject_app_name() -> dict[str, Any]:
         return {"app_name": "gpt-load"}
 
     @app.get("/api/health")
-    def health():
+    def health() -> Any:
         return jsonify({"status": "ok", "runs": Run.query.count(),
                         "samples": Sample.query.count()})
 
     @app.post("/api/runs")
-    def create_run():
+    def create_run() -> Any:
         d = request.get_json(force=True, silent=True) or {}
         run = Run(scenario=d.get("scenario", "basic"), endpoint=d.get("endpoint", ""),
                   model=d.get("model", "gpt-4o"), concurrency=d.get("concurrency", 20),
@@ -45,39 +58,53 @@ def build_app():
         threading.Thread(target=_run_async, args=(run.id,), daemon=True).start()
         return jsonify({"run_id": run.id, "status": "running"})
 
-    def _run_async(run_id):
-        import asyncio
-        eng = _engines[run_id]
-        asyncio.run(eng.run())
-        run = Run.query.get(run_id)
-        run.status = "done"
-        run.finished_at = datetime.utcnow()
-        run.summary_json = json.dumps(summarize(eng.samples))
-        db.session.commit()
+    def _run_async(run_id: int) -> None:
+        # The thread outlives the request that started it, so it cannot rely on
+        # the request context: it opens its own application context instead.
+        with app.app_context():
+            run = Run.query.get(run_id)
+            eng = _engines.get(run_id)
+            try:
+                if eng is not None and run is not None:
+                    asyncio.run(eng.run())
+                if run is not None:
+                    run.status = "done"
+                    run.finished_at = utc_now()
+                    run.summary_json = json.dumps(
+                        summarize(eng.samples) if eng is not None else {})
+            except Exception:
+                traceback.print_exc()
+                if run is not None:
+                    run.status = "failed"
+                    run.finished_at = utc_now()
+            db.session.commit()
 
     @app.get("/api/runs")
-    def list_runs():
+    def list_runs() -> Any:
         return jsonify({"runs": [r.to_dict() for r in Run.query.order_by(Run.id.desc()).limit(50).all()]})
 
     @app.get("/api/runs/<int:rid>/stream")
-    def stream(rid):
-        def gen():
+    def stream(rid: int) -> Response:
+        def gen() -> Any:
             while True:
                 run = Run.query.get(rid)
                 yield f"data: {json.dumps({'status': run.status, 'summary': json.loads(run.summary_json or '{}')})}\n\n"
                 if run.status != "running":
                     break
-        return Response(gen(), mimetype="text/event-stream")
+        # The body is consumed after the request context has been torn down, so
+        # it has to be wrapped: without stream_with_context the database lookup
+        # inside the generator sees no current application.
+        return Response(stream_with_context(gen()), mimetype="text/event-stream")
 
     @app.post("/api/runs/<int:rid>/stop")
-    def stop(rid):
+    def stop(rid: int) -> Any:
         eng = _engines.get(rid)
         if eng:
             eng.stop()
         return jsonify({"status": "stopped"})
 
     @app.get("/")
-    def index():
+    def index() -> Any:
         runs = [(r, json.loads(r.summary_json or "{}"))
                 for r in Run.query.order_by(Run.id.desc()).limit(8).all()]
         counts = {"runs": Run.query.count(), "samples": Sample.query.count(),
@@ -90,10 +117,10 @@ def build_app():
                                models=sorted(MODEL_COSTS), defaults=defaults)
 
     @app.post("/run")
-    def start_run():
+    def start_run() -> Any:
         f = request.form
 
-        def _int(name, default):
+        def _int(name: str, default: int) -> int:
             try:
                 return int(f.get(name) or default)
             except (TypeError, ValueError):
@@ -112,17 +139,17 @@ def build_app():
         return redirect(url_for("index"))
 
     @app.get("/history")
-    def history():
+    def history() -> Any:
         runs = [(r, json.loads(r.summary_json or "{}"))
                 for r in Run.query.order_by(Run.id.desc()).limit(100).all()]
         return render_template("history.html", runs=runs)
 
     @app.get("/compare")
-    def compare():
+    def compare() -> Any:
         runs = [(r, json.loads(r.summary_json or "{}"))
                 for r in Run.query.order_by(Run.id.desc()).limit(50).all()]
 
-        def _pick(name):
+        def _pick(name: str) -> Any:
             try:
                 rid = int(request.args.get(name, ""))
             except (TypeError, ValueError):
@@ -145,20 +172,20 @@ def build_app():
                                metric_rows=metric_rows)
 
     @app.post("/runs/<int:rid>/stop")
-    def stop_run(rid):
+    def stop_run(rid: int) -> Any:
         eng = _engines.get(rid)
         if eng:
             eng.stop()
         run = Run.query.get(rid)
         if run is not None and run.status == "running":
             run.status = "stopped"
-            run.finished_at = datetime.utcnow()
+            run.finished_at = utc_now()
             db.session.commit()
         flash("stopped run #%d" % rid, "success")
         return redirect(url_for("history"))
 
     @app.post("/runs/<int:rid>/delete")
-    def delete_run(rid):
+    def delete_run(rid: int) -> Any:
         Sample.query.filter_by(run_id=rid).delete()
         run = Run.query.get(rid)
         if run is not None:
@@ -168,5 +195,6 @@ def build_app():
         return redirect(url_for("history"))
 
     return app
+
 
 app = build_app()
