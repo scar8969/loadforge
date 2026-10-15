@@ -212,6 +212,7 @@ def test_legacy_run_api_lifecycle(tmp_path, monkeypatch):
         assert streamed.mimetype == "text/event-stream"
         assert "data: " in streamed.get_data(as_text=True)
 
+
         assert client.post("/api/runs/%d/stop" % run_id).get_json() == {
             "status": "stopped"}
 
@@ -263,3 +264,11 @@ def test_legacy_html_pages_and_form_flow(tmp_path, monkeypatch):
         assert client.post("/runs/%d/stop" % ids[0]).status_code == 302
         assert client.post("/runs/%d/delete" % ids[1]).status_code == 302
         assert client.get("/api/health").status_code == 200
+
+
+def test_a_stream_for_a_missing_run_ends_instead_of_raising(client):
+    """A row deleted while the stream was open must end it, not raise on None."""
+    streamed = client.get("/api/runs/999999999/stream", buffered=True)
+
+    assert streamed.mimetype == "text/event-stream"
+    assert '"status": "missing"' in streamed.get_data(as_text=True)

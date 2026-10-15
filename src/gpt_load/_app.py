@@ -62,7 +62,7 @@ def build_app() -> Flask:
         # The thread outlives the request that started it, so it cannot rely on
         # the request context: it opens its own application context instead.
         with app.app_context():
-            run = Run.query.get(run_id)
+            run = db.session.get(Run, run_id)
             eng = _engines.get(run_id)
             try:
                 if eng is not None and run is not None:
@@ -87,7 +87,12 @@ def build_app() -> Flask:
     def stream(rid: int) -> Response:
         def gen() -> Any:
             while True:
-                run = Run.query.get(rid)
+                run = db.session.get(Run, rid)
+                if run is None:
+                    # The row can be deleted while a stream is open; end the
+                    # stream rather than raising on None.
+                    yield f"data: {json.dumps({'status': 'missing', 'summary': {}})}\n\n"
+                    break
                 yield f"data: {json.dumps({'status': run.status, 'summary': json.loads(run.summary_json or '{}')})}\n\n"
                 if run.status != "running":
                     break
@@ -154,7 +159,7 @@ def build_app() -> Flask:
                 rid = int(request.args.get(name, ""))
             except (TypeError, ValueError):
                 return None
-            return Run.query.get(rid)
+            return db.session.get(Run, rid)
 
         left, right = _pick("a"), _pick("b")
         metric_rows = []
@@ -176,7 +181,7 @@ def build_app() -> Flask:
         eng = _engines.get(rid)
         if eng:
             eng.stop()
-        run = Run.query.get(rid)
+        run = db.session.get(Run, rid)
         if run is not None and run.status == "running":
             run.status = "stopped"
             run.finished_at = utc_now()
@@ -187,7 +192,7 @@ def build_app() -> Flask:
     @app.post("/runs/<int:rid>/delete")
     def delete_run(rid: int) -> Any:
         Sample.query.filter_by(run_id=rid).delete()
-        run = Run.query.get(rid)
+        run = db.session.get(Run, rid)
         if run is not None:
             db.session.delete(run)
             db.session.commit()

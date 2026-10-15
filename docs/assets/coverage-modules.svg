@@ -12,9 +12,9 @@
 <text x='792' y='476' font-family='Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif' font-size='10' fill='#59636e' text-anchor='middle'>100.0%</text>
 <text x='246' y='93' font-family='ui-monospace, SFMono-Regular, Consolas, monospace' font-size='12' fill='#1f2328' text-anchor='end'>_app.py</text>
 <rect x='258' y='82' width='534' height='15' rx='4' fill='#eef1f4'/>
-<rect x='258' y='82' width='498' height='15' rx='4' fill='#0969da'/>
-<text x='764' y='93' font-family='ui-monospace, SFMono-Regular, Consolas, monospace' font-size='12' font-weight='600' fill='#1f2328'>93.3%</text>
-<text x='248' y='93' font-family='ui-monospace, SFMono-Regular, Consolas, monospace' font-size='11' fill='#59636e' text-anchor='start'>140/143 stmts</text>
+<rect x='258' y='82' width='499' height='15' rx='4' fill='#0969da'/>
+<text x='765' y='93' font-family='ui-monospace, SFMono-Regular, Consolas, monospace' font-size='12' font-weight='600' fill='#1f2328'>93.5%</text>
+<text x='248' y='93' font-family='ui-monospace, SFMono-Regular, Consolas, monospace' font-size='11' fill='#59636e' text-anchor='start'>143/146 stmts</text>
 <text x='246' y='120' font-family='ui-monospace, SFMono-Regular, Consolas, monospace' font-size='12' fill='#1f2328' text-anchor='end'>app.py</text>
 <rect x='258' y='109' width='534' height='15' rx='4' fill='#eef1f4'/>
 <rect x='258' y='109' width='513' height='15' rx='4' fill='#0969da'/>
