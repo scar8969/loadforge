@@ -23,7 +23,7 @@ This README is a measured document. Every number in it was produced on this exac
 | Signal | Measured value | How it was measured |
 | --- | --- | --- |
 | Tests passed | **73 / 73** | `python -m pytest -q` (exit code 0) |
-| Test wall clock | 21.88 s | junit-xml suite time |
+| Test wall clock | 28.31 s | junit-xml suite time |
 | Line coverage | **97.8%** | 729 of 733 statements executed, 4 missed |
 | Source size | 1,472 lines / 16 modules | counted under `src/` |
 | Test size | 1,239 lines / 8 files | counted under `tests/` |
@@ -128,11 +128,45 @@ Status distribution: **200** x10, **404** x1. No response was a 5xx.
 | `POST` | `/runs/{id}/stop` |
 | `POST` | `/runs/{id}/delete` |
 
+## Operational endpoints
+
+Four of these are liveness and readiness plumbing for an orchestrator; `/metrics` is a Prometheus text exposition that needs no client library. The bodies below are captured verbatim from the running process.
+
+`/healthz` answered **200**:
+
+```json
+{"service":"gpt_load","status":"ok","version":"0.1.0"}
+```
+
+`/livez` answered **200**:
+
+```json
+{"status":"alive"}
+```
+
+`/readyz` answered **200**:
+
+```json
+{"checks":[],"status":"ready"}
+```
+
+`/metrics` answered **200**:
+
+```text
+# TYPE http_requests_total counter http_requests_total{method="GET",status="200"} 5 # TYPE http_request_duration_seconds_sum counter http_request_duration_seconds_sum{method="GET"} 0.0654095 http_requests_total{method="GET",status="404"} 1 # TYPE process_uptime_seconds gauge process_uptime_seconds 2.139
+```
+
+`/version` answered **200**:
+
+```json
+{"config":{"app_name":"gpt_load","data_dir":"C:\\Users\\priya\\Desktop\\project-skeletons\\projects\\a1_gpt_load\\var","database_configured":false,"debug":false,"env":"development","host":"0.0.0.0","legacy_env_present":[],"log_json":true,"log_level":"INFO","port":8000,"secret_key_configured":false},"paths":{"data_dir":"C:\\Users\\priya\\Desktop\\project-skeletons\\projects\\a1_gpt_load\\var","inst
+```
+
 ### Headers on every response
 
 | Header | Observed value |
 | --- | --- |
-| `X-Request-ID` | `b30f2746dba545a9be292c628d5d48bc` |
+| `X-Request-ID` | `7805702d90d84d9baf7d931cf4294fa3` |
 | `X-Content-Type-Options` | `nosniff` |
 | `X-Frame-Options` | `DENY` |
 | `Referrer-Policy` | `no-referrer` |
@@ -239,12 +273,13 @@ Configuration is environment-only, in the twelve-factor sense: nothing is read f
 | `LOG_LEVEL` | `INFO` |
 | `LOG_JSON` | `true` |
 | `REQUEST_ID_HEADER` | `X-Request-ID` |
+| `ANALYTICS_SALT` | `change-me-in-production` |
 
 ## Quality gates
 
 | Gate | Command | Result in this checkout |
 | --- | --- | --- |
-| Tests | `python -m pytest -q` | **73 passed, 0 failed, 0 errors** in 21.88 s |
+| Tests | `python -m pytest -q` | **73 passed, 0 failed, 0 errors** in 28.31 s |
 | Coverage | `python -m pytest --cov=src/gpt_load` | **97.8%** of 733 statements (4 missed) |
 | Lint | `python -m pyflakes src tests conftest.py wsgi.py` | **0 findings** in this checkout (pyflakes is the static checker available here; ruff cannot run on this host) |
 | Types | `python -m mypy --config-file mypy.ini src` | **no issues found in 16 source files** in this checkout |
@@ -300,7 +335,7 @@ Coverage clears the **85%** floor declared in `pyproject.toml` (`fail_under`), s
 
 | Workflow | Jobs | Steps | Commands |
 | --- | --- | --- | --- |
-| `ci.yml` | push, pull_request, workflow_dispatch, lint, test, security, container | 11 | | ; ruff check src tests ; ruff format --check src tests |
+| `ci.yml` | lint, test, security, container | 11 | ruff check src tests ; ruff format --check src tests ; mypy src |
 
 ## Documentation index
 

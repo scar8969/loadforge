@@ -78,7 +78,7 @@ flowchart TB
 | `templates/history.html` | asset |
 | `templates/index.html` | asset |
 | `tests/test_a1_gpt_load.py` | module |
-| `_app.py` | asset |
+| `_app.py` | module |
 
 ---
 
@@ -93,10 +93,10 @@ sequenceDiagram
     participant D as domain blueprint
     C->>W: GET /some/route
     W->>R: before_request
-    R->>H: assign / echo ⚡ gpt-load
+    R->>H: assign or echo X-Request-ID
     H->>D: dispatch
     D-->>H: response
-    H-->>C: response + security headers + ⚡ gpt-load
+    H-->>C: response + security headers + X-Request-ID
 ```
 
 Step by step:
@@ -153,7 +153,7 @@ empty database by creating what it needs.
 
 | Failure                         | Behaviour                                                   |
 | ------------------------------- | ----------------------------------------------------------- |
-| Database unreachable            | Requests needing it return `503`; `/readyz` reports the failure |
+| Database unreachable            | Requests that touch a table fail one by one; `/readyz` does **not** detect it today, because `readiness_checks()` in `app.py` is deliberately empty |
 | Database empty or never migrated | The schema is created on demand; no manual step required   |
 | Downstream service unreachable  | Route-specific behaviour, documented in the route table     |
 | Oversized request body          | `413` with the standard envelope (`MAX_CONTENT_LENGTH`)      |

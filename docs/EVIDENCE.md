@@ -18,9 +18,9 @@ python -m compileall -q src
 | compileall | exit 0 |
 | mypy | Success: no issues found in 16 source files |
 | pyflakes | 0 findings |
-| pytest | 73 passed, 15 warnings in 27.05s |
+| pytest | 73 passed, 15 warnings in 30.19s |
 | pytest_exit_code | 0 |
-| recorded_at | 2026-10-09 |
+| recorded_at | 2026-10-15 |
 | routes_ok | 11 |
 | routes_probed | 11 |
 
@@ -32,17 +32,17 @@ no such resource, and 404 is the honest answer for that.
 
 | method | path | rule | status | bytes | note |
 | --- | --- | --- | --- | --- | --- |
-| GET | `/` | `/` | 200 | 7417 | ok |
+| GET | `/` | `/` | 200 | 8203 | ok |
 | GET | `/api/health` | `/api/health` | 200 | 37 | ok |
-| GET | `/api/runs` | `/api/runs` | 200 | 1007 | ok |
+| GET | `/api/runs` | `/api/runs` | 200 | 2003 | ok |
 | GET | `/api/runs/demo/stream` | `/api/runs/<int:rid>/stream` | 404 | 51 | ok |
-| GET | `/compare` | `/compare` | 200 | 5411 | ok |
+| GET | `/compare` | `/compare` | 200 | 5747 | ok |
 | GET | `/healthz` | `/healthz` | 200 | 55 | ok |
-| GET | `/history` | `/history` | 200 | 6772 | ok |
+| GET | `/history` | `/history` | 200 | 8515 | ok |
 | GET | `/livez` | `/livez` | 200 | 19 | ok |
 | GET | `/metrics` | `/metrics` | 200 | 305 | ok |
 | GET | `/readyz` | `/readyz` | 200 | 31 | ok |
-| GET | `/version` | `/version` | 200 | 881 | ok |
+| GET | `/version` | `/version` | 200 | 880 | ok |
 
 ## Operational endpoints
 
@@ -70,10 +70,10 @@ no such resource, and 404 is the honest answer for that.
 # TYPE http_requests_total counter
 http_requests_total{method="GET",status="200"} 5
 # TYPE http_request_duration_seconds_sum counter
-http_request_duration_seconds_sum{method="GET"} 0.0460554
+http_request_duration_seconds_sum{method="GET"} 0.0654095
 http_requests_total{method="GET",status="404"} 1
 # TYPE process_uptime_seconds gauge
-process_uptime_seconds 0.918
+process_uptime_seconds 2.139
 ```
 
 `/version` answered **200**:
@@ -86,7 +86,7 @@ process_uptime_seconds 0.918
 
 | header | value |
 | --- | --- |
-| X-Request-ID | b30f2746dba545a9be292c628d5d48bc |
+| X-Request-ID | 7805702d90d84d9baf7d931cf4294fa3 |
 | X-Content-Type-Options | nosniff |
 | X-Frame-Options | DENY |
 | Referrer-Policy | no-referrer |
@@ -112,10 +112,8 @@ Success: no issues found in 16 source files
 
 ## What this file does not claim
 
-- No screenshot in this file: the HTTP surface above is evidenced with
-  recorded status codes and bodies instead. (Headless screenshots of the
-  same routes are committed under `docs/assets/screens/`, captured by the
-  README pipeline rather than by this recorder.)
+- No screenshot in this file: the HTTP surface above is evidenced with recorded status codes and bodies instead.
+  Headless screenshots of the same routes are committed under `docs/assets/screens/`, captured by the README pipeline rather than by this recorder.
 - No network access: the suite is hermetic and contacts no remote host.
 - No container run: the Dockerfile is reviewed, not executed, because no
   container runtime is reachable from this host.
