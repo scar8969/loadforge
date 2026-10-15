@@ -1,16 +1,16 @@
 # a1-gpt-load
 
-[![python: 3.11 %7C 3.12 %7C 3.13](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776ab)](#requirements) [![tests: 73 passed](https://img.shields.io/badge/tests-73%20passed-2ea44f)](#quality-gates) [![coverage: 97.8%25](https://img.shields.io/badge/coverage-97.8%25-brightgreen)](#quality-gates) [![version: 0.1.0](https://img.shields.io/badge/version-0.1.0-0969da)](CHANGELOG.md) [![license: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
+[![python: 3.11 %7C 3.12 %7C 3.13](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776ab)](#requirements) [![tests: 79 passed](https://img.shields.io/badge/tests-79%20passed-2ea44f)](#quality-gates) [![coverage: 97.8%25](https://img.shields.io/badge/coverage-97.8%25-brightgreen)](#quality-gates) [![version: 0.1.0](https://img.shields.io/badge/version-0.1.0-0969da)](CHANGELOG.md) [![license: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
 
 **a1-gpt-load** is a Flask service packaged the way a production service is packaged: a real package under `src/`, an environment-only configuration contract, structured JSON logs with request correlation, the five operational endpoints an orchestrator expects, a multi-stage container image, and CI gates that keep all of it honest.
 
-This README is a measured document. Every number in it was produced on this exact checkout by the commands recorded in [docs/EVIDENCE.md](docs/EVIDENCE.md): **73 tests** run under pytest, **733 statements** traced by coverage, and **11 HTTP requests** issued over a real socket to the running server.
+This README is a measured document. Every number in it was produced on this exact checkout by the commands recorded in [docs/EVIDENCE.md](docs/EVIDENCE.md): **79 tests** run under pytest, **733 statements** traced by coverage, and **11 HTTP requests** issued over a real socket to the running server.
 
 <table>
 <tr>
-<td align="center"><b>73 / 73</b><br><sub>tests passed</sub></td>
+<td align="center"><b>79 / 79</b><br><sub>tests passed</sub></td>
 <td align="center"><b>97.8%</b><br><sub>line coverage</sub></td>
-<td align="center"><b>1,472</b><br><sub>source lines</sub></td>
+<td align="center"><b>1,475</b><br><sub>source lines</sub></td>
 <td align="center"><b>11</b><br><sub>routes probed</sub></td>
 <td align="center"><b>8</b><br><sub>screenshots</sub></td>
 </tr>
@@ -22,12 +22,12 @@ This README is a measured document. Every number in it was produced on this exac
 
 | Signal | Measured value | How it was measured |
 | --- | --- | --- |
-| Tests passed | **73 / 73** | `python -m pytest -q` (exit code 0) |
-| Test wall clock | 28.31 s | junit-xml suite time |
+| Tests passed | **79 / 79** | `python -m pytest -q` (exit code 0) |
+| Test wall clock | 30.57 s | junit-xml suite time |
 | Line coverage | **97.8%** | 729 of 733 statements executed, 4 missed |
-| Source size | 1,472 lines / 16 modules | counted under `src/` |
-| Test size | 1,239 lines / 8 files | counted under `tests/` |
-| Documentation | 552 lines / 5 files | counted under `docs/` |
+| Source size | 1,475 lines / 16 modules | counted under `src/` |
+| Test size | 1,285 lines / 9 files | counted under `tests/` |
+| Documentation | 555 lines / 5 files | counted under `docs/` |
 | Routes probed | 11 GET routes, 10 answered 200 | real HTTP against `127.0.0.1:<port>` |
 | Total bytes served | 17.5 KB | 11 responses summed |
 | Median response | 22.7 ms | median of 11 measured round trips |
@@ -153,7 +153,7 @@ Four of these are liveness and readiness plumbing for an orchestrator; `/metrics
 `/metrics` answered **200**:
 
 ```text
-# TYPE http_requests_total counter http_requests_total{method="GET",status="200"} 5 # TYPE http_request_duration_seconds_sum counter http_request_duration_seconds_sum{method="GET"} 0.0654095 http_requests_total{method="GET",status="404"} 1 # TYPE process_uptime_seconds gauge process_uptime_seconds 2.139
+# TYPE http_requests_total counter http_requests_total{method="GET",status="200"} 5 # TYPE http_request_duration_seconds_sum counter http_request_duration_seconds_sum{method="GET"} 0.0568436 http_requests_total{method="GET",status="404"} 1 # TYPE process_uptime_seconds gauge process_uptime_seconds 1.177
 ```
 
 `/version` answered **200**:
@@ -166,7 +166,7 @@ Four of these are liveness and readiness plumbing for an orchestrator; `/metrics
 
 | Header | Observed value |
 | --- | --- |
-| `X-Request-ID` | `7805702d90d84d9baf7d931cf4294fa3` |
+| `X-Request-ID` | `9458b99913124231aa802f23591e3aa7` |
 | `X-Content-Type-Options` | `nosniff` |
 | `X-Frame-Options` | `DENY` |
 | `Referrer-Policy` | `no-referrer` |
@@ -279,7 +279,7 @@ Configuration is environment-only, in the twelve-factor sense: nothing is read f
 
 | Gate | Command | Result in this checkout |
 | --- | --- | --- |
-| Tests | `python -m pytest -q` | **73 passed, 0 failed, 0 errors** in 28.31 s |
+| Tests | `python -m pytest -q` | **79 passed, 0 failed, 0 errors** in 30.57 s |
 | Coverage | `python -m pytest --cov=src/gpt_load` | **97.8%** of 733 statements (4 missed) |
 | Lint | `python -m pyflakes src tests conftest.py wsgi.py` | **0 findings** in this checkout (pyflakes is the static checker available here; ruff cannot run on this host) |
 | Types | `python -m mypy --config-file mypy.ini src` | **no issues found in 16 source files** in this checkout |
@@ -301,6 +301,7 @@ Coverage clears the **85%** floor declared in `pyproject.toml` (`fail_under`), s
 | `tests/test_coverage_contracts.py` | 21 | 0 |
 | `tests/test_line_coverage.py` | 8 | 0 |
 | `tests/test_ops.py` | 11 | 0 |
+| `tests/test_paths.py` | 6 | 0 |
 
 ### Make targets
 

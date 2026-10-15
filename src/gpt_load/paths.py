@@ -9,7 +9,10 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-ENV_PREFIX = "GPT_LOAD"
+#: Prefix for the namespaced spelling of every variable below. It must end in
+#: the separator: `_env_path` builds the name as ENV_PREFIX + name, so a missing
+#: underscore turns GPT_LOAD_DATA_DIR into the unreachable GPT_LOADDATA_DIR.
+ENV_PREFIX = "GPT_LOAD_"
 
 PACKAGE_DIR: Path = Path(__file__).resolve().parent
 SRC_DIR: Path = PACKAGE_DIR.parent
