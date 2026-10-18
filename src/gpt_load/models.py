@@ -21,7 +21,7 @@ def utc_now() -> _datetime.datetime:
     naive too; ``datetime.utcnow()`` did exactly that but was removed in Python
     3.12+ in favour of the timezone-aware constructors used here.
     """
-    return _datetime.datetime.now(_datetime.timezone.utc).replace(tzinfo=None)
+    return _datetime.datetime.now(_datetime.UTC).replace(tzinfo=None)
 
 
 class Run(Base):
@@ -38,11 +38,18 @@ class Run(Base):
     summary_json = db.Column(db.Text, default="{}")
 
     def to_dict(self) -> dict[str, Any]:
-        return {"id": self.id, "scenario": self.scenario, "model": self.model,
-                "status": self.status, "concurrency": self.concurrency,
-                "duration": self.duration, "started_at": self.started_at.isoformat() if self.started_at else "",
-                "finished_at": self.finished_at.isoformat() if self.finished_at else "",
-                "summary": self.summary_json}
+        return {
+            "id": self.id,
+            "scenario": self.scenario,
+            "model": self.model,
+            "status": self.status,
+            "concurrency": self.concurrency,
+            "duration": self.duration,
+            "started_at": self.started_at.isoformat() if self.started_at else "",
+            "finished_at": self.finished_at.isoformat() if self.finished_at else "",
+            "summary": self.summary_json,
+        }
+
 
 class Sample(Base):
     __tablename__ = "samples"

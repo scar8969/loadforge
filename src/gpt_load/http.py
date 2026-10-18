@@ -4,13 +4,15 @@ operational endpoints (/healthz, /livez, /readyz, /metrics, /version).
 The blueprint registers no route that collides with the application: the paths
 below were checked against the frozen OpenAPI document before they were chosen.
 """
+
 from __future__ import annotations
 
 import functools
 import threading
 import time
 from collections import OrderedDict
-from typing import Any, Callable, Iterable
+from collections.abc import Callable, Iterable
+from typing import Any
 
 from flask import Blueprint, Flask, Response, g, jsonify, request
 from werkzeug.exceptions import HTTPException, MethodNotAllowed
@@ -42,9 +44,7 @@ class Counter:
     """
 
     def __init__(self) -> None:
-        self._counters: "OrderedDict[tuple[str, tuple[tuple[str, str], ...]], float]" = (
-            OrderedDict()
-        )
+        self._counters: OrderedDict[tuple[str, tuple[tuple[str, str], ...]], float] = OrderedDict()
 
     def inc(
         self,
@@ -67,7 +67,25 @@ class Counter:
 
 METRICS = Counter()
 
-_KNOWN_STATUS_BUCKETS = (200, 201, 204, 301, 302, 304, 400, 401, 403, 404, 405, 409, 413, 429, 500, 502, 503)
+_KNOWN_STATUS_BUCKETS = (
+    200,
+    201,
+    204,
+    301,
+    302,
+    304,
+    400,
+    401,
+    403,
+    404,
+    405,
+    409,
+    413,
+    429,
+    500,
+    502,
+    503,
+)
 
 
 def _sanitize_metric(value: str) -> str:
@@ -101,9 +119,7 @@ def install_observability(app: Flask, settings: Settings) -> None:
 
     @app.before_request
     def _assign_request_id() -> None:  # pragma: no cover - exercised through the app
-        g.request_id = observability.set_request_id(
-            request.headers.get(settings.request_id_header)
-        )
+        g.request_id = observability.set_request_id(request.headers.get(settings.request_id_header))
         g.request_started = time.perf_counter()
 
     @app.after_request
@@ -128,10 +144,10 @@ def install_observability(app: Flask, settings: Settings) -> None:
 
         # /metrics and the probes are noisy; exclude the ones that poll.
         if not request.path.startswith(("/metrics", "/healthz", "/livez", "/readyz")):
-            METRICS.inc("http_requests_total", method=request.method,
-                        status=str(response.status_code))
-            METRICS.inc("http_request_duration_seconds_sum", value=duration,
-                        method=request.method)
+            METRICS.inc(
+                "http_requests_total", method=request.method, status=str(response.status_code)
+            )
+            METRICS.inc("http_request_duration_seconds_sum", value=duration, method=request.method)
             observability.log_event(
                 observability.get_logger("gpt_load.access"),
                 "http_request",
@@ -222,9 +238,7 @@ def adopt_ops_paths(app: Flask, settings: Settings, skip: Iterable[str]) -> list
     historical payload is preserved inside a merged answer. Paths this project
     never claimed are reported back so the caller can add them as new rules.
     """
-    owned: dict[str, Any] = {
-        (rule.rule.rstrip("/") or "/"): rule.endpoint for rule in _routes(app)
-    }
+    owned: dict[str, Any] = {(rule.rule.rstrip("/") or "/"): rule.endpoint for rule in _routes(app)}
     claimed: list[str] = []
     for path, view in _ops_views(settings, ()):
         name = owned.get(path)
@@ -258,9 +272,7 @@ def guard_ops_methods(app: Flask, paths: Iterable[str]) -> list[str]:
     return added
 
 
-def _adopt(
-    ops_view: Callable[[], Any], legacy_view: Callable[..., Any]
-) -> Callable[..., Any]:
+def _adopt(ops_view: Callable[[], Any], legacy_view: Callable[..., Any]) -> Callable[..., Any]:
     """Compose the operational view with the one the application already had."""
 
     @functools.wraps(legacy_view)
@@ -317,8 +329,7 @@ def _ops_views(
     """The operational views, as ``(path, view)`` pairs."""
 
     def healthz() -> Any:  # pragma: no cover - exercised through the app
-        return jsonify({"status": "ok", "service": settings.app_name,
-                        "version": __version__}), 200
+        return jsonify({"status": "ok", "service": settings.app_name, "version": __version__}), 200
 
     def livez() -> Any:  # pragma: no cover - exercised through the app
         return jsonify({"status": "alive"}), 200
@@ -329,7 +340,7 @@ def _ops_views(
             name = getattr(check, "__name__", "check")
             try:
                 result = check()
-            except Exception as exc:  # noqa: BLE001 - reported, never raised
+            except Exception as exc:
                 failures.append({"check": name, "error": f"{type(exc).__name__}: {exc}"})
                 continue
             if result is False:
@@ -338,8 +349,9 @@ def _ops_views(
                 failures.append({"check": name, "error": str(result.get("error", "not ok"))})
         if failures:
             return jsonify({"status": "not_ready", "failures": failures}), 503
-        return jsonify({"status": "ready", "checks": [getattr(c, "__name__", "check")
-                                                      for c in checks]}), 200
+        return jsonify(
+            {"status": "ready", "checks": [getattr(c, "__name__", "check") for c in checks]}
+        ), 200
 
     def metrics() -> Response:  # pragma: no cover - exercised through the app
         return Response(render_metrics(), mimetype="text/plain; version=0.0.4; charset=utf-8")

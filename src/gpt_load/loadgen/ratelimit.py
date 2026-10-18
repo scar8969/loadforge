@@ -20,7 +20,9 @@ class TokenBucket:
                 await asyncio.sleep(0.05)
                 continue
             if self._tokens < n_tokens:
-                self._tokens = min(self.tpm, self._tokens + self.tpm * (now - getattr(self, "_last", now)) / 60)
+                self._tokens = min(
+                    self.tpm, self._tokens + self.tpm * (now - getattr(self, "_last", now)) / 60
+                )
                 if self._tokens < n_tokens:
                     await asyncio.sleep(0.05)
                     continue
@@ -32,6 +34,5 @@ class TokenBucket:
     def _refill(self) -> None:
         now = time.monotonic()
         last = getattr(self, "_last", now)
-        self._tokens = min(float(self.tpm),
-                           self._tokens + self.tpm * (now - last) / 60.0)
+        self._tokens = min(float(self.tpm), self._tokens + self.tpm * (now - last) / 60.0)
         self._last = now

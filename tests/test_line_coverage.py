@@ -14,6 +14,7 @@ the suite keeps seeing the one application it started with.
 The load engine and the network are the only substituted pieces; every other
 line below is the production code path.
 """
+
 from __future__ import annotations
 
 import importlib
@@ -27,8 +28,11 @@ import pytest
 
 def _drop_package():
     """Forget every gpt_load module, returning what was there before."""
-    saved = {name: module for name, module in sys.modules.items()
-             if name == "gpt_load" or name.startswith("gpt_load.")}
+    saved = {
+        name: module
+        for name, module in sys.modules.items()
+        if name == "gpt_load" or name.startswith("gpt_load.")
+    }
     for name in list(saved):
         del sys.modules[name]
     return saved
@@ -36,8 +40,7 @@ def _drop_package():
 
 def _restore_package(saved):
     """Put the original module objects back and drop the private copies."""
-    for name in [m for m in list(sys.modules)
-                 if m == "gpt_load" or m.startswith("gpt_load.")]:
+    for name in [m for m in list(sys.modules) if m == "gpt_load" or m.startswith("gpt_load.")]:
         del sys.modules[name]
     sys.modules.update(saved)
 
@@ -64,12 +67,27 @@ def isolated(tmp_path, monkeypatch):
 #: formatting code and not about whatever a load test happened to produce. The
 #: third carries a metric that is not a number: the delta column must degrade.
 RUNS = [
-    {"scenario": "smoke", "endpoint": "http://127.0.0.1:9/v1", "model": "gpt-4o",
-     "status": "done", "summary_json": json.dumps({"rps": 42.5, "p50": 12.0})},
-    {"scenario": "burst", "endpoint": "http://127.0.0.1:9/v1", "model": "gpt-4o-mini",
-     "status": "done", "summary_json": json.dumps({"rps": 31.25, "p50": 18.5})},
-    {"scenario": "text-only", "endpoint": "", "model": "gpt-4o", "status": "stopped",
-     "summary_json": json.dumps({"rps": 5.0, "note": "no numbers here"})},
+    {
+        "scenario": "smoke",
+        "endpoint": "http://127.0.0.1:9/v1",
+        "model": "gpt-4o",
+        "status": "done",
+        "summary_json": json.dumps({"rps": 42.5, "p50": 12.0}),
+    },
+    {
+        "scenario": "burst",
+        "endpoint": "http://127.0.0.1:9/v1",
+        "model": "gpt-4o-mini",
+        "status": "done",
+        "summary_json": json.dumps({"rps": 31.25, "p50": 18.5}),
+    },
+    {
+        "scenario": "text-only",
+        "endpoint": "",
+        "model": "gpt-4o",
+        "status": "stopped",
+        "summary_json": json.dumps({"rps": 5.0, "note": "no numbers here"}),
+    },
 ]
 
 
@@ -112,9 +130,13 @@ def test_report_json_prints_the_decoded_summaries(isolated, capsys):
     assert isolated.cli.cmd_report(SimpleNamespace(limit=20, json=True)) == 0
     payload = json.loads(capsys.readouterr().out)
     assert [row["id"] for row in payload] == [3, 2, 1]
-    assert payload[0] == {"id": 3, "scenario": "text-only", "model": "gpt-4o",
-                          "status": "stopped",
-                          "summary": {"rps": 5.0, "note": "no numbers here"}}
+    assert payload[0] == {
+        "id": 3,
+        "scenario": "text-only",
+        "model": "gpt-4o",
+        "status": "stopped",
+        "summary": {"rps": 5.0, "note": "no numbers here"},
+    }
 
 
 def test_compare_lines_up_two_runs_and_degrades_non_numeric_metrics(isolated, capsys):
@@ -165,16 +187,18 @@ def test_main_dispatches_report_and_compare(isolated, monkeypatch, capsys):
 
 def test_create_app_installs_the_cross_cutting_layers_exactly_once(isolated):
     explicit = isolated.web.paths.INSTANCE_DIR / "explicit.db"
-    settings = isolated.config.Settings.from_env({
-        "APP_ENV": "test",
-        "SECRET_KEY": "unit-test-secret-key",
-        "LOG_LEVEL": "INFO",
-        "LOG_JSON": "1",
-        # A supplied DATABASE_URL is the operator's explicit choice and has to
-        # reach the legacy configuration instead of being dropped on the floor.
-        "DATABASE_URL": "sqlite:///" + explicit.as_posix(),
-        "MAX_CONTENT_LENGTH": "1048576",
-    })
+    settings = isolated.config.Settings.from_env(
+        {
+            "APP_ENV": "test",
+            "SECRET_KEY": "unit-test-secret-key",
+            "LOG_LEVEL": "INFO",
+            "LOG_JSON": "1",
+            # A supplied DATABASE_URL is the operator's explicit choice and has to
+            # reach the legacy configuration instead of being dropped on the floor.
+            "DATABASE_URL": "sqlite:///" + explicit.as_posix(),
+            "MAX_CONTENT_LENGTH": "1048576",
+        }
+    )
 
     app = isolated.app.create_app(settings)
     assert app.config["CROSS_CUTTING_INSTALLED"] is True
@@ -212,10 +236,16 @@ def test_a_failing_engine_marks_the_run_failed(isolated, monkeypatch):
     monkeypatch.setattr(web, "LoadEngine", _FailingEngine)
     web.app.config.update(TESTING=True)
     with web.app.test_client() as client:
-        created = client.post("/api/runs", json={
-            "scenario": "unreachable", "endpoint": "http://stub.invalid/v1",
-            "model": "gpt-4o", "concurrency": 1, "duration": 1,
-        })
+        created = client.post(
+            "/api/runs",
+            json={
+                "scenario": "unreachable",
+                "endpoint": "http://stub.invalid/v1",
+                "model": "gpt-4o",
+                "concurrency": 1,
+                "duration": 1,
+            },
+        )
         assert created.status_code == 200
         row = _await_status(client, created.get_json()["run_id"], wanted=("failed",))
     assert row["status"] == "failed"
@@ -224,12 +254,25 @@ def test_a_failing_engine_marks_the_run_failed(isolated, monkeypatch):
 
 def test_compare_page_tolerates_a_metric_that_is_not_a_number(isolated):
     web = isolated.web
-    _seed(web, [
-        {"scenario": "one", "endpoint": "", "model": "gpt-4o", "status": "done",
-         "summary_json": json.dumps({"rps": 12.5, "p50": 30.0})},
-        {"scenario": "two", "endpoint": "", "model": "gpt-4o", "status": "done",
-         "summary_json": json.dumps({"rps": "not-a-number", "p50": 21.0})},
-    ])
+    _seed(
+        web,
+        [
+            {
+                "scenario": "one",
+                "endpoint": "",
+                "model": "gpt-4o",
+                "status": "done",
+                "summary_json": json.dumps({"rps": 12.5, "p50": 30.0}),
+            },
+            {
+                "scenario": "two",
+                "endpoint": "",
+                "model": "gpt-4o",
+                "status": "done",
+                "summary_json": json.dumps({"rps": "not-a-number", "p50": 21.0}),
+            },
+        ],
+    )
 
     web.app.config.update(TESTING=True)
     with web.app.test_client() as client:

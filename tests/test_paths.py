@@ -7,6 +7,7 @@ name by concatenation, so the prefix used to produce the unreachable
 ``GPT_LOADDATA_DIR`` and the namespaced form was silently ignored. These tests
 pin both spellings and their precedence.
 """
+
 from __future__ import annotations
 
 import pathlib

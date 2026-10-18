@@ -16,20 +16,35 @@ def cmd_run(args: argparse.Namespace) -> int:
     from .models import Run, db, utc_now
 
     sc = load_scenario(args.scenario)
-    eng = LoadEngine(sc["endpoint"], sc["model"], sc.get("api_key", ""),
-                     sc["concurrency"], sc["duration"], sc.get("rpm", 1000), sc.get("tpm", 500000))
+    eng = LoadEngine(
+        sc["endpoint"],
+        sc["model"],
+        sc.get("api_key", ""),
+        sc["concurrency"],
+        sc["duration"],
+        sc.get("rpm", 1000),
+        sc.get("tpm", 500000),
+    )
     asyncio.run(eng.run())
     s = summarize(eng.samples)
-    print(f"[gpt-load] rps={s['rps']} p50={s['p50']}ms p95={s['p95']}ms p99={s['p99']}ms err={s['err_rate']}% cost=${s['cost']}")
+    print(
+        f"[gpt-load] rps={s['rps']} p50={s['p50']}ms p95={s['p95']}ms p99={s['p99']}ms err={s['err_rate']}% cost=${s['cost']}"
+    )
 
     # Persist the run before exiting: without this row the "report" and
     # "compare" subcommands would have nothing to read back, which would make
     # the documented run -> report -> compare flow useless.
     with app.app_context():
-        run = Run(scenario=os.path.basename(args.scenario), endpoint=sc["endpoint"],
-                  model=sc["model"], status="done",
-                  concurrency=sc["concurrency"], duration=sc["duration"],
-                  summary_json=json.dumps(s), finished_at=utc_now())
+        run = Run(
+            scenario=os.path.basename(args.scenario),
+            endpoint=sc["endpoint"],
+            model=sc["model"],
+            status="done",
+            concurrency=sc["concurrency"],
+            duration=sc["duration"],
+            summary_json=json.dumps(s),
+            finished_at=utc_now(),
+        )
         db.session.add(run)
         db.session.commit()
         print(f"[gpt-load] recorded run #{run.id}")
@@ -43,15 +58,23 @@ def cmd_report(args: argparse.Namespace) -> int:
 
     with app.app_context():
         rows = Run.query.order_by(Run.id.desc()).limit(args.limit).all()
-        out = [{"id": r.id, "scenario": r.scenario, "model": r.model,
+        out = [
+            {
+                "id": r.id,
+                "scenario": r.scenario,
+                "model": r.model,
                 "status": r.status,
-                "summary": json.loads(r.summary_json or "{}")} for r in rows]
+                "summary": json.loads(r.summary_json or "{}"),
+            }
+            for r in rows
+        ]
     if args.json:
         print(json.dumps(out, indent=2))
     else:
         for r in out:
-            print(f"#{r['id']} {r['scenario']:<16} {r['model']:<14} "
-                  f"{r['status']:<8} {r['summary']}")
+            print(
+                f"#{r['id']} {r['scenario']:<16} {r['model']:<14} {r['status']:<8} {r['summary']}"
+            )
     return 0
 
 

@@ -4,6 +4,7 @@ These assert the interfaces an operator or an orchestrator depends on:
 liveness, readiness, the metric exposition format, and a version document that
 never leaks a secret.
 """
+
 from __future__ import annotations
 
 import json

@@ -3,6 +3,7 @@
 Kept separate from ``gpt_load.app`` on purpose: this module is the legacy
 surface the factory wraps, so it stays importable and testable on its own.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -12,8 +13,17 @@ import threading
 import traceback
 from typing import Any
 
-from flask import (Flask, Response, flash, jsonify, redirect, render_template,
-                   request, stream_with_context, url_for)
+from flask import (
+    Flask,
+    Response,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    stream_with_context,
+    url_for,
+)
 
 from . import paths
 from .loadgen.engine import LoadEngine
@@ -25,8 +35,9 @@ paths.ensure_runtime_dirs()
 
 def build_app() -> Flask:
     """Build the application: configuration, database, then routes."""
-    app = Flask(__name__, template_folder=str(paths.TEMPLATES_DIR),
-                instance_path=str(paths.INSTANCE_DIR))
+    app = Flask(
+        __name__, template_folder=str(paths.TEMPLATES_DIR), instance_path=str(paths.INSTANCE_DIR)
+    )
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + str(paths.INSTANCE_DIR / "gptload.db")
     app.secret_key = os.environ.get("SECRET_KEY", "gpt-load-dev")
     db.init_app(app)
@@ -41,19 +52,29 @@ def build_app() -> Flask:
 
     @app.get("/api/health")
     def health() -> Any:
-        return jsonify({"status": "ok", "runs": Run.query.count(),
-                        "samples": Sample.query.count()})
+        return jsonify({"status": "ok", "runs": Run.query.count(), "samples": Sample.query.count()})
 
     @app.post("/api/runs")
     def create_run() -> Any:
         d = request.get_json(force=True, silent=True) or {}
-        run = Run(scenario=d.get("scenario", "basic"), endpoint=d.get("endpoint", ""),
-                  model=d.get("model", "gpt-4o"), concurrency=d.get("concurrency", 20),
-                  duration=d.get("duration", 60))
+        run = Run(
+            scenario=d.get("scenario", "basic"),
+            endpoint=d.get("endpoint", ""),
+            model=d.get("model", "gpt-4o"),
+            concurrency=d.get("concurrency", 20),
+            duration=d.get("duration", 60),
+        )
         db.session.add(run)
         db.session.commit()
-        eng = LoadEngine(run.endpoint, run.model, d.get("api_key", ""),
-                         run.concurrency, run.duration, d.get("rpm", 1000), d.get("tpm", 500000))
+        eng = LoadEngine(
+            run.endpoint,
+            run.model,
+            d.get("api_key", ""),
+            run.concurrency,
+            run.duration,
+            d.get("rpm", 1000),
+            d.get("tpm", 500000),
+        )
         _engines[run.id] = eng
         threading.Thread(target=_run_async, args=(run.id,), daemon=True).start()
         return jsonify({"run_id": run.id, "status": "running"})
@@ -70,8 +91,7 @@ def build_app() -> Flask:
                 if run is not None:
                     run.status = "done"
                     run.finished_at = utc_now()
-                    run.summary_json = json.dumps(
-                        summarize(eng.samples) if eng is not None else {})
+                    run.summary_json = json.dumps(summarize(eng.samples) if eng is not None else {})
             except Exception:
                 traceback.print_exc()
                 if run is not None:
@@ -81,7 +101,9 @@ def build_app() -> Flask:
 
     @app.get("/api/runs")
     def list_runs() -> Any:
-        return jsonify({"runs": [r.to_dict() for r in Run.query.order_by(Run.id.desc()).limit(50).all()]})
+        return jsonify(
+            {"runs": [r.to_dict() for r in Run.query.order_by(Run.id.desc()).limit(50).all()]}
+        )
 
     @app.get("/api/runs/<int:rid>/stream")
     def stream(rid: int) -> Response:
@@ -96,6 +118,7 @@ def build_app() -> Flask:
                 yield f"data: {json.dumps({'status': run.status, 'summary': json.loads(run.summary_json or '{}')})}\n\n"
                 if run.status != "running":
                     break
+
         # The body is consumed after the request context has been torn down, so
         # it has to be wrapped: without stream_with_context the database lookup
         # inside the generator sees no current application.
@@ -110,16 +133,27 @@ def build_app() -> Flask:
 
     @app.get("/")
     def index() -> Any:
-        runs = [(r, json.loads(r.summary_json or "{}"))
-                for r in Run.query.order_by(Run.id.desc()).limit(8).all()]
-        counts = {"runs": Run.query.count(), "samples": Sample.query.count(),
-                  "running": Run.query.filter_by(status="running").count()}
-        defaults = {"scenario": "basic",
-                    "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
-                    "model": "gpt-4o", "concurrency": 20, "duration": 10,
-                    "rpm": 1000, "tpm": 500000}
-        return render_template("index.html", runs=runs, counts=counts,
-                               models=sorted(MODEL_COSTS), defaults=defaults)
+        runs = [
+            (r, json.loads(r.summary_json or "{}"))
+            for r in Run.query.order_by(Run.id.desc()).limit(8).all()
+        ]
+        counts = {
+            "runs": Run.query.count(),
+            "samples": Sample.query.count(),
+            "running": Run.query.filter_by(status="running").count(),
+        }
+        defaults = {
+            "scenario": "basic",
+            "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+            "model": "gpt-4o",
+            "concurrency": 20,
+            "duration": 10,
+            "rpm": 1000,
+            "tpm": 500000,
+        }
+        return render_template(
+            "index.html", runs=runs, counts=counts, models=sorted(MODEL_COSTS), defaults=defaults
+        )
 
     @app.post("/run")
     def start_run() -> Any:
@@ -131,13 +165,24 @@ def build_app() -> Flask:
             except (TypeError, ValueError):
                 return default
 
-        run = Run(scenario=f.get("scenario", "basic"), endpoint=f.get("endpoint", ""),
-                  model=f.get("model", "gpt-4o"), concurrency=_int("concurrency", 20),
-                  duration=_int("duration", 10))
+        run = Run(
+            scenario=f.get("scenario", "basic"),
+            endpoint=f.get("endpoint", ""),
+            model=f.get("model", "gpt-4o"),
+            concurrency=_int("concurrency", 20),
+            duration=_int("duration", 10),
+        )
         db.session.add(run)
         db.session.commit()
-        eng = LoadEngine(run.endpoint, run.model, f.get("api_key", ""),
-                         run.concurrency, run.duration, _int("rpm", 1000), _int("tpm", 500000))
+        eng = LoadEngine(
+            run.endpoint,
+            run.model,
+            f.get("api_key", ""),
+            run.concurrency,
+            run.duration,
+            _int("rpm", 1000),
+            _int("tpm", 500000),
+        )
         _engines[run.id] = eng
         threading.Thread(target=_run_async, args=(run.id,), daemon=True).start()
         flash("started run #%d" % run.id, "success")
@@ -145,14 +190,18 @@ def build_app() -> Flask:
 
     @app.get("/history")
     def history() -> Any:
-        runs = [(r, json.loads(r.summary_json or "{}"))
-                for r in Run.query.order_by(Run.id.desc()).limit(100).all()]
+        runs = [
+            (r, json.loads(r.summary_json or "{}"))
+            for r in Run.query.order_by(Run.id.desc()).limit(100).all()
+        ]
         return render_template("history.html", runs=runs)
 
     @app.get("/compare")
     def compare() -> Any:
-        runs = [(r, json.loads(r.summary_json or "{}"))
-                for r in Run.query.order_by(Run.id.desc()).limit(50).all()]
+        runs = [
+            (r, json.loads(r.summary_json or "{}"))
+            for r in Run.query.order_by(Run.id.desc()).limit(50).all()
+        ]
 
         def _pick(name: str) -> Any:
             try:
@@ -173,8 +222,9 @@ def build_app() -> Flask:
                 except (TypeError, ValueError):
                     delta = None
                 metric_rows.append({"label": k, "a": va, "b": vb, "delta": delta})
-        return render_template("compare.html", runs=runs, left=left, right=right,
-                               metric_rows=metric_rows)
+        return render_template(
+            "compare.html", runs=runs, left=left, right=right, metric_rows=metric_rows
+        )
 
     @app.post("/runs/<int:rid>/stop")
     def stop_run(rid: int) -> Any:

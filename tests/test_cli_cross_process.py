@@ -10,6 +10,7 @@ what that process wrote. ``report`` and ``compare`` are exercised the same way
 against a throwaway SQLite database, which is the only way to prove that
 ``DATA_DIR`` is honoured at import time.
 """
+
 from __future__ import annotations
 
 import json
@@ -37,10 +38,8 @@ def _child_env(tmp_path):
     # The package is imported from the source tree, and the interpreter path the
     # suite already runs with is kept: that is where the repository harness
     # exposes its vendored runtime dependencies.
-    existing = [part for part in os.environ.get("PYTHONPATH", "").split(os.pathsep)
-                if part]
-    env["PYTHONPATH"] = os.pathsep.join(
-        existing + [str(REPO_ROOT / "src"), str(REPO_ROOT)])
+    existing = [part for part in os.environ.get("PYTHONPATH", "").split(os.pathsep) if part]
+    env["PYTHONPATH"] = os.pathsep.join(existing + [str(REPO_ROOT / "src"), str(REPO_ROOT)])
     env["DATA_DIR"] = str(tmp_path / "data")
     env["INSTANCE_DIR"] = str(tmp_path / "instance")
     env["TMP"] = env["TEMP"] = str(tmp_path / "tmp")
@@ -58,8 +57,14 @@ def _child(tmp_path, *argv):
         (tmp_path / name).mkdir(parents=True, exist_ok=True)
     return subprocess.run(
         [sys.executable, "-m", "gpt_load.cli", *argv],
-        capture_output=True, text=True, encoding="utf-8",
-        errors="replace", timeout=120, env=_child_env(tmp_path), cwd=str(tmp_path))
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=120,
+        env=_child_env(tmp_path),
+        cwd=str(tmp_path),
+    )
 
 
 def test_module_entry_point_with_no_arguments_prints_help(tmp_path):
@@ -117,7 +122,13 @@ def test_compare_with_an_unknown_run_id_exits_with_code_two(tmp_path):
 def test_support_modules_import_cleanly_in_a_child_process(tmp_path, name):
     done = subprocess.run(
         [sys.executable, "-c", "import gpt_load.%s as m; print(m.__name__)" % name],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
-        timeout=120, env=_child_env(tmp_path), cwd=str(tmp_path))
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=120,
+        env=_child_env(tmp_path),
+        cwd=str(tmp_path),
+    )
     assert done.returncode == 0, done.stderr[-2000:]
     assert done.stdout.strip() == "gpt_load." + name
