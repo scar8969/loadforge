@@ -1,7 +1,7 @@
 # Legacy mirror of the [project.dependencies] table in pyproject.toml.
 # pyproject.toml is the source of truth; this file exists for tooling that
 # still only understands requirements.txt.
-Flask>=3.0
+Flask>=3.1.3
 Flask-SQLAlchemy>=3.1
 SQLAlchemy>=2.0
 PyYAML>=6.0
