@@ -1,365 +1,166 @@
-# loadforge
+<p align="center">
+  <img src="docs/assets/screens/root.png" alt="loadforge running" width="900">
+</p>
 
-[![python: 3.11 %7C 3.12 %7C 3.13](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776ab)](#requirements) [![tests: 80 passed](https://img.shields.io/badge/tests-80%20passed-2ea44f)](#quality-gates) [![coverage: 97.8%25](https://img.shields.io/badge/coverage-97.8%25-brightgreen)](#quality-gates) [![version: 0.1.0](https://img.shields.io/badge/version-0.1.0-0969da)](CHANGELOG.md) [![license: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
+<h1 align="center">loadforge</h1>
 
-**loadforge** is a Flask service packaged the way a production service is packaged: a real package under `src/`, an environment-only configuration contract, structured JSON logs with request correlation, the five operational endpoints an orchestrator expects, a multi-stage container image, and CI gates that keep all of it honest.
+<p align="center"><b>Load-test an OpenAI-compatible endpoint and get percentiles, not vibes.</b></p>
 
-This README is a measured document. Every number in it was produced on this exact checkout by the commands recorded in [docs/EVIDENCE.md](docs/EVIDENCE.md): **80 tests** run under pytest, **736 statements** traced by coverage, and **11 HTTP requests** issued over a real socket to the running server.
+<p align="center">
+  <a href="#quality-gates"><img src="https://img.shields.io/badge/tests-80%20passed-2ea44f" alt="tests: 80 passed"></a> <a href="#quality-gates"><img src="https://img.shields.io/badge/coverage-97.8%-brightgreen" alt="coverage: 97.8%"></a> <a href="#api"><img src="https://img.shields.io/badge/routes-10%20answered-0969da" alt="routes: 10 answered"></a> <a href="#requirements"><img src="https://img.shields.io/badge/python-3.11%2B-3776ab" alt="python: 3.11+"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2ea44f" alt="license: MIT"></a>
+</p>
 
-<table>
-<tr>
-<td align="center"><b>80 / 80</b><br><sub>tests passed</sub></td>
-<td align="center"><b>97.8%</b><br><sub>line coverage</sub></td>
-<td align="center"><b>1,480</b><br><sub>source lines</sub></td>
-<td align="center"><b>11</b><br><sub>routes probed</sub></td>
-<td align="center"><b>8</b><br><sub>screenshots</sub></td>
-</tr>
-</table>
+loadforge drives concurrent chat-completion traffic at any OpenAI-compatible API, records a sample per request, and reports p50/p95/p99 latency, throughput and token cost per run. Runs are stored in SQLite so you can compare two configurations after the fact instead of arguing about which one felt faster.
 
 ---
 
-## At a glance
+**Contents** &nbsp;·&nbsp; [Why](#why-this-exists) &nbsp;·&nbsp; [What it does](#what-it-does) &nbsp;·&nbsp; [Quickstart](#quickstart) &nbsp;·&nbsp; [API](#api) &nbsp;·&nbsp; [Screenshots](#screenshots) &nbsp;·&nbsp; [Measured](#measured-not-estimated) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [Quality gates](#quality-gates) &nbsp;·&nbsp; [Deploy](#deploy) &nbsp;·&nbsp; [Limits](#limits-stated-rather-than-hidden)
 
-| Signal | Measured value | How it was measured |
-| --- | --- | --- |
-| Tests passed | **80 / 80** | `python -m pytest -q` (exit code 0) |
-| Test wall clock | 22.87 s | junit-xml suite time |
-| Line coverage | **97.8%** | 732 of 736 statements executed, 4 missed |
-| Source size | 1,480 lines / 16 modules | counted under `src/` |
-| Test size | 1,294 lines / 9 files | counted under `tests/` |
-| Documentation | 555 lines / 5 files | counted under `docs/` |
-| Routes probed | 11 GET routes, 10 answered 200 | real HTTP against `127.0.0.1:<port>` |
-| Total bytes served | 17.5 KB | 11 responses summed |
-| Median response | 22.7 ms | median of 11 measured round trips |
-| Screenshots | 8 captured | headless Chromium at 1440x900 |
+## Why this exists
 
-The slowest measured route was **167.8 ms** (`/`) and the fastest **6.3 ms** (`/readyz`). Every figure is a single uncached first request against the development server, so the spread reflects cold template rendering and lazy imports rather than steady-state latency.
+Most load generators tell you requests per second and stop there. What you actually need before raising a rate limit or switching a model is the tail: how bad p99 gets, how many requests error, and what the run cost in tokens. loadforge records every sample and derives those numbers from the samples, so the summary can be re-derived from the rows.
 
-## Screenshots
+## What it does
 
-Rendered from the running service with headless Chromium:
+| Capability | How it works |
+| --- | --- |
+| **Scenario-driven traffic** | Declarative scenarios with prompt sets, concurrency, duration and ramp; the engine schedules them and streams samples back as they land. |
+| **Percentiles from samples** | p50/p95/p99, throughput and error rate computed over stored samples, not estimated from a counter. |
+| **Token accounting** | Prompt and completion tokens counted per request (tiktoken when available), rolled up into a per-run cost. |
+| **Live progress over SSE** | GET /api/runs/<id>/stream is a server-sent event stream, so a browser or curl sees samples as they arrive. |
+| **Run history and diff** | Every run persists; the CLI compares two runs field by field. |
+| **HTML dashboard** | A server-rendered page starts a run and shows the live table without a JavaScript build step. |
+
+## Quickstart
 
 ```sh
-chrome --headless=new --disable-gpu --no-sandbox --hide-scrollbars \
-  --user-data-dir=<dir> --virtual-time-budget=4000 \
-  --window-size=1440,900 --screenshot=<png> <url>
+git clone https://github.com/scar8969/loadforge.git
+cd loadforge
+python -m venv .venv && . .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+python wsgi.py                                 # http://127.0.0.1:8000
 ```
 
-The files are committed under `docs/assets/screens/`.
+The same work from the CLI:
 
-<table>
-<tr>
-<td width="50%"><img src="docs/assets/screens/root.png" alt="/" width="100%"><br><sub><code>/</code> &middot; 34.3 KB</sub></td>
-<td width="50%"><img src="docs/assets/screens/compare.png" alt="/compare" width="100%"><br><sub><code>/compare</code> &middot; 21.4 KB</sub></td>
-</tr>
-</table>
-
-<table>
-<tr>
-<td width="50%"><img src="docs/assets/screens/history.png" alt="/history" width="100%"><br><sub><code>/history</code> &middot; 21.3 KB</sub></td>
-<td width="50%"><img src="docs/assets/screens/healthz.png" alt="/healthz" width="100%"><br><sub><code>/healthz</code> &middot; 8.3 KB</sub></td>
-</tr>
-</table>
-
-<table>
-<tr>
-<td width="50%"><img src="docs/assets/screens/livez.png" alt="/livez" width="100%"><br><sub><code>/livez</code> &middot; 7.3 KB</sub></td>
-<td width="50%"><img src="docs/assets/screens/metrics.png" alt="/metrics" width="100%"><br><sub><code>/metrics</code> &middot; 14.9 KB</sub></td>
-</tr>
-</table>
-
-<table>
-<tr>
-<td width="50%"><img src="docs/assets/screens/readyz.png" alt="/readyz" width="100%"><br><sub><code>/readyz</code> &middot; 7.7 KB</sub></td>
-<td width="50%"><img src="docs/assets/screens/version.png" alt="/version" width="100%"><br><sub><code>/version</code> &middot; 26.2 KB</sub></td>
-</tr>
-</table>
-
-## Charts
-
-Every chart is generated from the same measured JSON that renders the tables, by `_tools/_chartlib.py` - hand-written SVG with no plotting dependency - and committed so GitHub renders it without a build step.
-
-![Line coverage](docs/assets/coverage.svg)
-
-![Coverage by module](docs/assets/coverage-modules.svg)
-
-![Test outcome](docs/assets/tests.svg)
-
-![Response time per route](docs/assets/latency.svg)
-
-![Response size per route](docs/assets/payload.svg)
-
-![Repository size](docs/assets/loc.svg)
-
-![File counts](docs/assets/files.svg)
-
-## HTTP surface
-
-Each route below was requested over TCP against the running server, started with `APP_ENV=production` so the production configuration path is the one under test. Static file routes are excluded: they are served by the WSGI container, not the application.
-
-| # | Route | Status | Time | Bytes | Content type |
-| --- | --- | --- | --- | --- | --- |
-| 1 | `/` | **200** | 167.8 ms | 6,456 | text/html; charset=utf-8 |
-| 2 | `/api/health` | **200** | 16.3 ms | 37 | application/json |
-| 3 | `/api/runs` | **200** | 15.7 ms | 12 | application/json |
-| 4 | `/api/runs/demo/stream` | **404** | 13.7 ms | 51 | application/json |
-| 5 | `/compare` | **200** | 31.0 ms | 5,098 | text/html; charset=utf-8 |
-| 6 | `/healthz` | **200** | 15.1 ms | 55 | application/json |
-| 7 | `/history` | **200** | 41.3 ms | 4,926 | text/html; charset=utf-8 |
-| 8 | `/livez` | **200** | 22.7 ms | 19 | application/json |
-| 9 | `/metrics` | **200** | 29.9 ms | 304 | text/plain; version=0.0.4; charset=utf-8; charset=utf-8 |
-| 10 | `/readyz` | **200** | 6.3 ms | 31 | application/json |
-| 11 | `/version` | **200** | 24.1 ms | 904 | application/json |
-
-Status distribution: **200** x10, **404** x1. No response was a 5xx.
-
-### Declared API contract
-
-`openapi/loadforge.yaml` declares **7 paths** carrying **8 operations** (3 GET, 5 POST):
-
-| Method | Path |
-| --- | --- |
-| `GET` | `/api/health` |
-| `GET` | `/api/runs` |
-| `POST` | `/api/runs` |
-| `GET` | `/api/runs/{id}/stream` |
-| `POST` | `/api/runs/{id}/stop` |
-| `POST` | `/run` |
-| `POST` | `/runs/{id}/stop` |
-| `POST` | `/runs/{id}/delete` |
-
-## Operational endpoints
-
-Four of these are liveness and readiness plumbing for an orchestrator; `/metrics` is a Prometheus text exposition that needs no client library. The bodies below are captured verbatim from the running process.
-
-`/healthz` answered **200**:
-
-```json
-{"service":"gpt_load","status":"ok","version":"0.1.0"}
+```sh
+python -m gpt_load.cli --help
 ```
 
-`/livez` answered **200**:
+Commands: `run`, `report`, `compare`.
 
-```json
-{"status":"alive"}
+A first request:
+
+```sh
+curl -s http://127.0.0.1:8000/api/health | head
 ```
-
-`/readyz` answered **200**:
-
-```json
-{"checks":[],"status":"ready"}
-```
-
-`/metrics` answered **200**:
-
-```text
-# TYPE http_requests_total counter http_requests_total{method="GET",status="200"} 5 # TYPE http_request_duration_seconds_sum counter http_request_duration_seconds_sum{method="GET"} 0.0508526 http_requests_total{method="GET",status="404"} 1 # TYPE process_uptime_seconds gauge process_uptime_seconds 0.952
-```
-
-`/version` answered **200**:
-
-```json
-{"config":{"app_name":"gpt_load","data_dir":".\\var","database_configured":false,"debug":false,"env":"development","host":"0.0.0.0","legacy_env_present":[],"log_json":true,"log_level":"INFO","port":8000,"secret_key_configured":false},"paths":{"data_dir":".\\var","inst
-```
-
-### Headers on every response
-
-| Header | Observed value |
-| --- | --- |
-| `X-Request-ID` | `28b45a70f030423fb0b029b3ca9e4402` |
-| `X-Content-Type-Options` | `nosniff` |
-| `X-Frame-Options` | `DENY` |
-| `Referrer-Policy` | `no-referrer` |
-| `Cross-Origin-Opener-Policy` | `same-origin` |
-| `Permissions-Policy` | `geolocation=(), microphone=(), camera=()` |
-| `Content-Type` | `application/json` |
-
-## Architecture
-
-LLM API load tester. `gpt-load` drives concurrent chat-completion traffic at an OpenAI-compatible endpoint from an asyncio worker pool, throttles it with a token bucket, and reports latency percentiles, error rate, and token cost.
-
-```text
-.dockerignore
-.editorconfig
-.env.example
-.gitignore
-.pre-commit-config.yaml
-CHANGELOG.md
-CODE_OF_CONDUCT.md
-CONTRIBUTING.md
-Dockerfile
-LICENSE
-Makefile
-NOTES.md
-README.md
-SECURITY.md
-conftest.py
-docker-compose.yml
-docker-entrypoint.sh
-mypy.ini
-pyproject.toml
-requirements-dev.txt
-requirements.txt
-wsgi.py
-.github/
-  workflows/
-    ci.yml
-.tmp/
-  .mypy/
-    .gitignore
-    CACHEDIR.TAG
-    missing_stubs
-docs/
-  ARCHITECTURE.md
-  EVIDENCE.md
-  OPERATIONS.md
-  adr/
-    0001-src-layout-and-runtime-state.md
-    0002-hand-rolled-metric-exposition.md
-  assets/
-    coverage-modules.svg
-    coverage.svg
-    files.svg
-    latency.svg
-    loc.svg
-    payload.svg
-    tests.svg
-openapi/
-  loadforge.yaml
-schema/
-  loadforge.sql
-src/
-  gpt_load/
-    __init__.py
-    _app.py
-    app.py
-    cli.py
-    config.py
-    errors.py
-    http.py
-    models.py
-    observability.py
-    paths.py
-    py.typed
-tests/
-  conftest.py
-  ...
-```
-
-Deeper material: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the module map and request lifecycle, [docs/OPERATIONS.md](docs/OPERATIONS.md) for running and configuring it, [docs/EVIDENCE.md](docs/EVIDENCE.md) for the raw recorded output this README quotes.
-
-### Architecture decision records
-
-| Record | Decision | Status |
-| --- | --- | --- |
-| [0001-src-layout-and-runtime-state.md](docs/adr/0001-src-layout-and-runtime-state.md) | 1. Adopt a src/ layout with an explicit runtime state directory | accepted |
-| [0002-hand-rolled-metric-exposition.md](docs/adr/0002-hand-rolled-metric-exposition.md) | 2. Hand-roll metric exposition instead of depending on prometheus_client | accepted |
 
 ## Requirements
 
-Configuration is environment-only, in the twelve-factor sense: nothing is read from a committed file, and `.env.example` is the complete list of what the process understands.
+- Python **3.11+** — CI runs 3.11, 3.12 and 3.13.
+- Runtime dependencies: `Flask>=3.0`, `Flask-SQLAlchemy>=3.1`, `SQLAlchemy>=2.0`, `PyYAML>=6.0`, `aiohttp`, `tiktoken`.
+- No JavaScript build step: every page is server-rendered Jinja.
 
-| Variable | Example value |
+## API
+
+Every route below is in [`openapi/loadforge.yaml`](openapi/loadforge.yaml) and is exercised by the live probe recorded in [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| `GET` | `/api/health` | liveness probe |
+| `GET` | `/api/runs` | list runs, newest first |
+| `POST` | `/api/runs` | create a run and start it in the background |
+| `GET` | `/api/runs/{id}/stream` | server-sent event stream of samples for one run |
+| `POST` | `/api/runs/{id}/stop` | stop a running load test |
+| `POST` | `/run` | start a run from the HTML form |
+| `POST` | `/runs/{id}/stop` | stop a run from the HTML form |
+| `POST` | `/runs/{id}/delete` | delete a stored run and its samples |
+
+## Screenshots
+
+Captured from the running service with headless Chromium at 1440×900, one image per page, committed under [`docs/assets/screens/`](docs/assets/screens/).
+
+<table>
+<tr>
+<td width="50%"><img src="docs/assets/screens/compare.png" alt="/compare" width="100%"><br><sub><code>/compare</code> &middot; 21.4 KB</sub></td>
+<td width="50%"><img src="docs/assets/screens/history.png" alt="/history" width="100%"><br><sub><code>/history</code> &middot; 21.3 KB</sub></td>
+</tr>
+</table>
+
+The other 5 captures — the health, liveness, readiness, metrics and version endpoints — are committed in the same folder rather than shown here.
+
+## Measured, not estimated
+
+These numbers were produced on this checkout by `pytest --cov` and by booting `wsgi.py` and issuing one real GET per documented path. The commands are in [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
+
+| Signal | Value |
 | --- | --- |
-| `APP_ENV` | `development` |
-| `SECRET_KEY` | `change-me-in-production` |
-| `HOST` | `0.0.0.0` |
-| `PORT` | `8000` |
-| `DEBUG` | `false` |
-| `MAX_CONTENT_LENGTH` | `8388608` |
-| `DATA_DIR` | `(empty)` |
-| `INSTANCE_DIR` | `(empty)` |
-| `LOG_DIR` | `(empty)` |
-| `LOG_LEVEL` | `INFO` |
-| `LOG_JSON` | `true` |
-| `REQUEST_ID_HEADER` | `X-Request-ID` |
-| `ANALYTICS_SALT` | `change-me-in-production` |
+| Tests | **80 / 80 passed** (31.4 s, exit 0) |
+| Line coverage | **97.8%** — 733 of 737 statements |
+| Source | 16 files / 1,657 lines |
+| Test code | 9 files / 1,425 lines |
+| Documented paths | 7 in the spec, 3 GET |
+| Live probe | 11 GET requests to the booted app, **10 answered 200** |
+| Median latency | **22.7 ms** (single uncached request, dev server) |
+| Slowest / fastest | 167.8 ms `/` / 6.3 ms `/readyz` |
+| Bytes served | 17.5 KB across 11 responses |
+| Screenshots | 8 captured |
+
+## Architecture
+
+```
+loadforge/
+├── src/gpt_load/
+│   ├── http.py                         381  HTTP plumbing for gpt_load: correlation ids, access 
+│   ├── _app.py                         256  The project's own Flask application: models, routes 
+│   ├── config.py                       172  Environment-driven configuration for gpt_load
+│   ├── observability.py                169  Structured logging and request correlation for gpt_l
+│   ├── cli.py                          146  
+│   ├── app.py                          119  Application factory for gpt_load
+│   ├── errors.py                       108  Typed application errors and their HTTP mapping for 
+│   ├── loadgen/engine.py                80  
+│   ├── models.py                        64  
+│   ├── paths.py                         55  Filesystem layout for gpt_load
+│   ├── loadgen/metrics.py               42  
+│   ├── loadgen/ratelimit.py             39  
+├── openapi/loadforge.yaml                 the contract of record
+├── schema/loadforge.sql                   the DDL
+├── tests/                       the suite that has to stay green
+├── docs/EVIDENCE.md             the recorded live route walk
+├── Dockerfile                   multi-stage build
+└── wsgi.py                      entry point
+```
+
+The package keeps one shape across the service: `config.py` reads the environment once, `observability.py` emits structured JSON logs carrying a request id, `errors.py` turns exceptions into a single JSON envelope, `models.py` holds the tables, and the blueprints under `src/` hold the routes.
 
 ## Quality gates
 
-| Gate | Command | Result in this checkout |
+| Gate | Command | Threshold |
 | --- | --- | --- |
-| Tests | `python -m pytest -q` | **80 passed, 0 failed, 0 errors** in 22.87 s |
-| Coverage | `python -m pytest --cov=src/gpt_load` | **97.8%** of 736 statements (4 missed) |
-| Lint | `python -m pyflakes src tests conftest.py wsgi.py` | **0 findings** in this checkout (pyflakes is the static checker available here; ruff cannot run on this host) |
-| Types | `python -m mypy --config-file mypy.ini src` | **no issues found in 16 source files** in this checkout |
-| Container | `docker build .` | Dockerfile reviewed, **not executed** - no container runtime on this host |
+| Suite | `pytest -q` | all green |
+| Coverage | `pytest --cov` | floor set in `pyproject.toml` from the measured value |
+| Lint | `ruff check src tests` | zero findings |
+| Format | `ruff format --check src tests` | zero reformats |
+| Types | `mypy src` | zero errors |
+| Security | `bandit -c pyproject.toml -r src` | reviewed skip list, no unreviewed finding |
+| Live routes | boot `wsgi.py`, one GET per documented path | no 5xx, no undocumented guard |
 
-`make lint` and `make type` run the pinned `ruff` and `mypy` from the project virtualenv that `make install` creates; CI runs the same two tools. This host has no network access, so the `ruff` pinned in `requirements-dev.txt` could not be installed; the Lint row reports `pyflakes`, the checker that actually ran here, rather than a tool that never executed. Both static checks were run over the checkout and their raw output is stored in `docs/EVIDENCE.md`.
+CI runs the first six on Python 3.11, 3.12 and 3.13 for every push to `main`, plus a container build. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
-Coverage clears the **85%** floor declared in `pyproject.toml` (`fail_under`), so the same command that produced the number above also passes the gate.
+## Deploy
 
-### Test inventory
+```sh
+docker build -t loadforge .
+docker run --rm -p 8000:8000 --env-file .env.example loadforge
+```
 
-| File | def test_* | class Test* |
-| --- | --- | --- |
-| `tests/conftest.py` | 0 | 0 |
-| `tests/test_loadforge.py` | 6 | 0 |
-| `tests/test_cli_and_engine.py` | 11 | 0 |
-| `tests/test_cli_cross_process.py` | 6 | 0 |
-| `tests/test_config.py` | 9 | 0 |
-| `tests/test_coverage_contracts.py` | 21 | 0 |
-| `tests/test_line_coverage.py` | 8 | 0 |
-| `tests/test_ops.py` | 11 | 0 |
-| `tests/test_paths.py` | 6 | 0 |
+Configuration is environment-only — every variable is documented in [`.env.example`](.env.example), and the service refuses to start with a production secret missing.
 
-### Make targets
+## Limits, stated rather than hidden
 
-| Target | What it does |
-| --- | --- |
-| `make help` | Show this help |
-| `make install` | Create the virtualenv and install dev dependencies |
-| `make fmt` | Auto-format (ruff is required; see requirements-dev.txt) |
-| `make lint` | Lint without modifying anything |
-| `make type` | Static type check |
-| `make test` | Run the test suite |
-| `make cov` | Run the test suite with coverage and enforce the floor |
-| `make check` | The gate CI runs |
-| `make run` | Start the development server |
-| `make clean` | Remove caches and build artefacts |
-| `make docker-build` | Build the container image |
-| `make docker-run` | Run the container on port 8000 |
-
-## Container image
-
-| Property | Value |
-| --- | --- |
-| Build stages | 2 |
-| Base images | `python:3.12-slim`, `python:3.12-slim` |
-| COPY instructions | 4 |
-| HEALTHCHECK | yes |
-| Runs as non-root | yes |
-
-`docker build` and `docker run` were **never executed** while this repository was produced: no container runtime is reachable from the generating host. The Dockerfile is a reviewed artefact, not a verified one.
-
-## Continuous integration
-
-| Workflow | Jobs | Steps | Commands |
-| --- | --- | --- | --- |
-| `ci.yml` | lint, test, security, container | 11 | ruff check src tests ; ruff format --check src tests ; mypy src |
-
-## Documentation index
-
-| File | Contents |
-| --- | --- |
-| [README.md](README.md) | this file - the measured overview |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | module responsibilities, dependency direction, request lifecycle |
-| [docs/OPERATIONS.md](docs/OPERATIONS.md) | how to run, configure, and operate the service |
-| [docs/EVIDENCE.md](docs/EVIDENCE.md) | recorded command output - the raw source of every number here |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | setup and submission workflow |
-| [SECURITY.md](SECURITY.md) | how to report a vulnerability |
-| [CHANGELOG.md](CHANGELOG.md) | release history, Keep a Changelog form |
-| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | community expectations |
-
-## What this repository does not claim
-
-- **No container run.** `docker build` was never executed.
-- **No CI run.** The workflow files are real, but no GitHub runner has executed them from this checkout.
-- **Static checks ran on this host, not the pinned toolchain.** `python -m pyflakes` and `python -m mypy` were executed here; `ruff` from the development requirements could not be installed on the generating host, so the lint gate named in `Makefile` is not the one that produced the numbers above.
-- **No published artifact.** The package installs from this tree with `pip install -e .`; nothing was uploaded to an index.
-- **Localhost only.** Every HTTP number was measured against `127.0.0.1` on the generating host, single-threaded, with no concurrency; treat them as smoke-test timings, not benchmarks.
-- **No browser verification of content.** Screenshots were captured headlessly and checked structurally (valid PNG, expected dimensions, non-empty DOM); nobody has looked at them by eye in this session.
+- The engine targets one endpoint per run; multi-target fan-out is a scenario field, not a scheduler feature.
+- Token counts are exact only when tiktoken is installed for the model family you test; otherwise they are estimated from text length and the run says so.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).

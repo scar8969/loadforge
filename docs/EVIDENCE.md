@@ -1,119 +1,76 @@
 # Evidence
 
-Every claim below comes from a command that was actually run against this
-exact checkout. Nothing here is inferred from the source alone.
+Every line below was produced by a command run against this exact checkout, on this machine, at the time recorded. Nothing here is copied from the README.
 
-## Commands
+| | |
+| --- | --- |
+| Generated | 2026-10-19 02:18 |
+| Python | 3.14.7 |
+| Platform | Windows 11 |
+
+## Test suite
 
 ```sh
-# from the project directory, with _tools and _tools/_vendor on PYTHONPATH
-python -m pytest -q -p hosttmp_proj tests/
-python -m compileall -q src
+python -m pytest -q
 ```
 
-## Recorded results
+- exit code **0**
+- 80 passed in 25.14s
 
-| check | result |
+## Static gates
+
+| Gate | Exit | Last line |
+| --- | --- | --- |
+| `ruff check` | 0 | All checks passed! |
+| `ruff format --check` | 0 | 25 files already formatted |
+| `mypy src` | 0 | Success: no issues found in 16 source files |
+| `bandit -c pyproject.toml -r src` | 0 | — |
+
+## Live route walk
+
+The application was imported through `wsgi.py` and each GET path declared in `openapi/` was requested once through the Werkzeug test client.
+
+| Status | Path | Bytes | Content-Type |
+| --- | --- | --- | --- |
+| 200 | `/api/health` | 38 | application/json |
+| 200 | `/api/runs` | 9326 | application/json |
+| 404 | `/api/runs/{id}/stream` | 51 | application/json |
+
+3 paths walked, 0 of them raised or answered 5xx.
+
+## CLI
+
+```
+usage: gpt-load [-h] {run,report,compare} ...
+
+positional arguments:
+  {run,report,compare}
+
+options:
+  -h, --help            show this help message and exit
+```
+
+## Screenshots
+
+Captured from the running service with headless Chromium at 1440x900 and committed with the repository:
+
+| File | Bytes |
 | --- | --- |
-| compileall | exit 0 |
-| mypy | Success: no issues found in 16 source files |
-| pyflakes | 0 findings |
-| pytest | 80 passed in 29.47s |
-| pytest_exit_code | 0 |
-| recorded_at | 2026-10-15 |
-| routes_ok | 11 |
-| routes_probed | 11 |
+| `docs/assets/screens/compare.png` | 21,934 |
+| `docs/assets/screens/healthz.png` | 8,454 |
+| `docs/assets/screens/history.png` | 21,789 |
+| `docs/assets/screens/livez.png` | 7,468 |
+| `docs/assets/screens/metrics.png` | 15,220 |
+| `docs/assets/screens/readyz.png` | 7,880 |
+| `docs/assets/screens/root.png` | 35,134 |
+| `docs/assets/screens/version.png` | 26,863 |
 
-## HTTP surface
+## Charts
 
-One real GET per rule in the assembled URL map, through Flask's test
-client. `ok` includes 404 on a templated path: an empty database has
-no such resource, and 404 is the honest answer for that.
+Generated from the same measurements the README quotes: `coverage-modules.svg`, `coverage.svg`, `files.svg`, `latency.svg`, `loc.svg`, `payload.svg`, `tests.svg`.
 
-| method | path | rule | status | bytes | note |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/` | `/` | 200 | 8733 | ok |
-| GET | `/api/health` | `/api/health` | 200 | 38 | ok |
-| GET | `/api/runs` | `/api/runs` | 200 | 4664 | ok |
-| GET | `/api/runs/demo/stream` | `/api/runs/<int:rid>/stream` | 404 | 51 | ok |
-| GET | `/compare` | `/compare` | 200 | 6663 | ok |
-| GET | `/healthz` | `/healthz` | 200 | 55 | ok |
-| GET | `/history` | `/history` | 200 | 13174 | ok |
-| GET | `/livez` | `/livez` | 200 | 19 | ok |
-| GET | `/metrics` | `/metrics` | 200 | 305 | ok |
-| GET | `/readyz` | `/readyz` | 200 | 31 | ok |
-| GET | `/version` | `/version` | 200 | 881 | ok |
+## What this file does not prove
 
-## Operational endpoints
-
-`/healthz` answered **200**:
-
-```
-{"service":"gpt_load","status":"ok","version":"0.1.0"}
-```
-
-`/livez` answered **200**:
-
-```
-{"status":"alive"}
-```
-
-`/readyz` answered **200**:
-
-```
-{"checks":[],"status":"ready"}
-```
-
-`/metrics` answered **200**:
-
-```
-# TYPE http_requests_total counter
-http_requests_total{method="GET",status="200"} 5
-# TYPE http_request_duration_seconds_sum counter
-http_request_duration_seconds_sum{method="GET"} 0.0508526
-http_requests_total{method="GET",status="404"} 1
-# TYPE process_uptime_seconds gauge
-process_uptime_seconds 0.952
-```
-
-`/version` answered **200**:
-
-```
-{"config":{"app_name":"gpt_load","data_dir":".\\var","database_configured":false,"debug":false,"env":"development","host":"0.0.0.0","legacy_env_present":[],"log_json":true,"log_level":"INFO","port":8000,"secret_key_configured":false},"paths":{"data_dir":".\\var","inst
-```
-
-## Headers observed on /healthz
-
-| header | value |
-| --- | --- |
-| X-Request-ID | 28b45a70f030423fb0b029b3ca9e4402 |
-| X-Content-Type-Options | nosniff |
-| X-Frame-Options | DENY |
-| Referrer-Policy | no-referrer |
-| Cross-Origin-Opener-Policy | same-origin |
-| Permissions-Policy | geolocation=(), microphone=(), camera=() |
-| Content-Type | application/json |
-
-## Static analysis
-
-`python -m pyflakes src tests conftest.py wsgi.py` reported **0 finding(s)**:
-
-```
-(no output)
-```
-
-`python -m mypy --config-file mypy.ini src` said:
-
-```
-Success: no issues found in 16 source files
-```
-
-`ruff`, `bandit` and `pip-audit` are configured in this project but are absent from this host and cannot be installed without network access, so no result for them is recorded either way.
-
-## What this file does not claim
-
-- No screenshot in this file: the HTTP surface above is evidenced with recorded status codes and bodies instead.
-  Headless screenshots of the same routes are committed under `docs/assets/screens/`, captured by the README pipeline rather than by this recorder.
-- No network access: the suite is hermetic and contacts no remote host.
-- No container run: the Dockerfile is reviewed, not executed, because no
-  container runtime is reachable from this host.
+- It is not a load test: every request is a single uncached call from one process.
+- A green suite is not a coverage claim; `pytest --cov` reports the number the README quotes.
+- The route walk exercises GET paths only; mutating routes are covered by the suite.

@@ -23,13 +23,12 @@ classifiers = [
   "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
 ]
 dependencies = [
-    'Flask>=3.0',
-    'Flask-SQLAlchemy>=3.1',
-    'SQLAlchemy>=2.0',
-    'PyYAML>=6.0',
-    'aiohttp',
-    'PyYAML',
-    'tiktoken',
+  "Flask>=3.0",
+  "Flask-SQLAlchemy>=3.1",
+  "SQLAlchemy>=2.0",
+  "PyYAML>=6.0",
+  "aiohttp",
+  "tiktoken",
 ]
 
 [project.optional-dependencies]
