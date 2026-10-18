@@ -3,7 +3,7 @@
 # still only understands requirements.txt.
 Flask>=3.0
 Flask-SQLAlchemy>=3.1
-SQLAlchemy>=2.0
+SQLAlchemy>=2.1.4
 PyYAML>=6.0
 aiohttp
 PyYAML
