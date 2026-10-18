@@ -3,13 +3,13 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "a1-gpt-load"
+name = "loadforge"
 version = "0.1.0"
-description = "LLM API load tester: drives concurrent chat-completion traffic at an OpenAI-compatible endpoint."
+description = "LLM API load tester: drives concurrent chat-completion traffic at an OpenAI-compatible endpoint and reports latency percentiles and token cost."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "project-skeletons maintainers" }]
+authors = [{ name = "Priyanshu Rout" }]
 keywords = ["flask", "service", "gpt_load"]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -49,7 +49,7 @@ Documentation = "https://example.invalid/gpt_load/docs"
 Issues = "https://example.invalid/gpt_load/issues"
 
 [project.scripts]
-a1-gpt-load = "gpt_load.cli:main"
+loadforge = "gpt_load.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

@@ -11,7 +11,7 @@ they do, and what breaks first under load.
 
 ## 1. Context
 
-a1_gpt_load is a single-process Flask service. It owns its own database (SQLite by
+loadforge is a single-process Flask service. It owns its own database (SQLite by
 default, any SQLAlchemy-supported backend via `DATABASE_URL`) and is deployed
 behind a reverse proxy or an orchestrator.
 
@@ -77,7 +77,7 @@ flowchart TB
 | `templates/compare.html` | asset |
 | `templates/history.html` | asset |
 | `templates/index.html` | asset |
-| `tests/test_a1_gpt_load.py` | module |
+| `tests/test_loadforge.py` | module |
 | `_app.py` | module |
 
 ---
@@ -140,8 +140,8 @@ writable lives under `/app`.
 
 | Table | Owner |
 | --- | --- |
-| `runs` | owned by `a1_gpt_load` |
-| `samples` | owned by `a1_gpt_load` |
+| `runs` | owned by `loadforge` |
+| `samples` | owned by `loadforge` |
 
 Tables are created by the application's own bootstrap on first use. No migration
 tool is wired in; the schema is additive, and the service tolerates a missing or

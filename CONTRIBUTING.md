@@ -5,7 +5,7 @@ Thanks for taking the time. This is the short version of how changes land here.
 ## Getting set up
 
 ```sh
-git clone <your-fork> a1_gpt_load && cd a1_gpt_load
+git clone <your-fork> loadforge && cd loadforge
 python -m venv .venv
 . .venv/bin/activate           # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
@@ -60,7 +60,7 @@ Types: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`,
 ## Adding an endpoint
 
 1. Add the route to the application modules.
-2. Add its path and methods to `openapi/a1_gpt_load.yaml`. The spec is the
+2. Add its path and methods to `openapi/loadforge.yaml`. The spec is the
    contract; an undocumented route is a defect.
 3. Decide its authentication story explicitly. If it is public, say so in review.
 4. Add a test covering the success path and at least one failure path.

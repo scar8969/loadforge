@@ -1,8 +1,8 @@
-# a1-gpt-load
+# loadforge
 
 [![python: 3.11 %7C 3.12 %7C 3.13](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776ab)](#requirements) [![tests: 80 passed](https://img.shields.io/badge/tests-80%20passed-2ea44f)](#quality-gates) [![coverage: 97.8%25](https://img.shields.io/badge/coverage-97.8%25-brightgreen)](#quality-gates) [![version: 0.1.0](https://img.shields.io/badge/version-0.1.0-0969da)](CHANGELOG.md) [![license: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
 
-**a1-gpt-load** is a Flask service packaged the way a production service is packaged: a real package under `src/`, an environment-only configuration contract, structured JSON logs with request correlation, the five operational endpoints an orchestrator expects, a multi-stage container image, and CI gates that keep all of it honest.
+**loadforge** is a Flask service packaged the way a production service is packaged: a real package under `src/`, an environment-only configuration contract, structured JSON logs with request correlation, the five operational endpoints an orchestrator expects, a multi-stage container image, and CI gates that keep all of it honest.
 
 This README is a measured document. Every number in it was produced on this exact checkout by the commands recorded in [docs/EVIDENCE.md](docs/EVIDENCE.md): **80 tests** run under pytest, **736 statements** traced by coverage, and **11 HTTP requests** issued over a real socket to the running server.
 
@@ -115,7 +115,7 @@ Status distribution: **200** x10, **404** x1. No response was a 5xx.
 
 ### Declared API contract
 
-`openapi/a1_gpt_load.yaml` declares **7 paths** carrying **8 operations** (3 GET, 5 POST):
+`openapi/loadforge.yaml` declares **7 paths** carrying **8 operations** (3 GET, 5 POST):
 
 | Method | Path |
 | --- | --- |
@@ -159,7 +159,7 @@ Four of these are liveness and readiness plumbing for an orchestrator; `/metrics
 `/version` answered **200**:
 
 ```json
-{"config":{"app_name":"gpt_load","data_dir":"C:\\Users\\priya\\Desktop\\project-skeletons\\projects\\a1_gpt_load\\var","database_configured":false,"debug":false,"env":"development","host":"0.0.0.0","legacy_env_present":[],"log_json":true,"log_level":"INFO","port":8000,"secret_key_configured":false},"paths":{"data_dir":"C:\\Users\\priya\\Desktop\\project-skeletons\\projects\\a1_gpt_load\\var","inst
+{"config":{"app_name":"gpt_load","data_dir":".\\var","database_configured":false,"debug":false,"env":"development","host":"0.0.0.0","legacy_env_present":[],"log_json":true,"log_level":"INFO","port":8000,"secret_key_configured":false},"paths":{"data_dir":".\\var","inst
 ```
 
 ### Headers on every response
@@ -225,9 +225,9 @@ docs/
     payload.svg
     tests.svg
 openapi/
-  a1_gpt_load.yaml
+  loadforge.yaml
 schema/
-  a1_gpt_load.sql
+  loadforge.sql
 src/
   gpt_load/
     __init__.py
@@ -294,7 +294,7 @@ Coverage clears the **85%** floor declared in `pyproject.toml` (`fail_under`), s
 | File | def test_* | class Test* |
 | --- | --- | --- |
 | `tests/conftest.py` | 0 | 0 |
-| `tests/test_a1_gpt_load.py` | 6 | 0 |
+| `tests/test_loadforge.py` | 6 | 0 |
 | `tests/test_cli_and_engine.py` | 11 | 0 |
 | `tests/test_cli_cross_process.py` | 6 | 0 |
 | `tests/test_config.py` | 9 | 0 |

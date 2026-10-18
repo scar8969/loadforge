@@ -1,4 +1,4 @@
-"""A1 gpt-load — tests. Run: pytest test_a1_gpt_load.py"""
+"""A1 gpt-load — tests. Run: pytest test_loadforge.py"""
 import json, threading
 
 import pytest

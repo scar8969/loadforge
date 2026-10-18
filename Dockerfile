@@ -34,7 +34,7 @@ RUN groupadd --system --gid 1001 app \
 WORKDIR /app
 
 COPY --from=builder /wheels /wheels
-RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels a1-gpt-load \
+RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels loadforge \
  && rm -rf /wheels \
  && mkdir -p /var/lib/gpt_load/instance /var/lib/gpt_load/log \
  && chown -R app:app /var/lib/gpt_load /app
