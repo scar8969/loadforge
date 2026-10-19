@@ -4,7 +4,7 @@ Every line below was produced by a command run against this exact checkout, on t
 
 | | |
 | --- | --- |
-| Generated | 2026-10-19 02:18 |
+| Generated | 2026-10-19 09:38 |
 | Python | 3.14.7 |
 | Platform | Windows 11 |
 
@@ -15,7 +15,7 @@ python -m pytest -q
 ```
 
 - exit code **0**
-- 80 passed in 25.14s
+- 80 passed in 81.99s (0:01:21)
 
 ## Static gates
 
@@ -33,7 +33,7 @@ The application was imported through `wsgi.py` and each GET path declared in `op
 | Status | Path | Bytes | Content-Type |
 | --- | --- | --- | --- |
 | 200 | `/api/health` | 38 | application/json |
-| 200 | `/api/runs` | 9326 | application/json |
+| 200 | `/api/runs` | 10991 | application/json |
 | 404 | `/api/runs/{id}/stream` | 51 | application/json |
 
 3 paths walked, 0 of them raised or answered 5xx.
